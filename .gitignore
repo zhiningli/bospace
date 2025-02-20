@@ -1,0 +1,30 @@
+# Python cache and environment
+__pycache__/
+*.pyc 
+*.pyo 
+*.pyd 
+
+# Virtual environment
+venv/
+.env 
+
+# Conda environment
+*.conda 
+*.ipynb_checkpoints/
+*.egg-info/
+
+# Logs and outputs
+logs/
+*.logs
+
+# VS Code
+.vscode/
+settings.json
+
+# Data and models
+data/
+models/
+
+# System files
+.DS_Store
+Thumbs.db
