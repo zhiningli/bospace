@@ -1,56 +1,52 @@
-# Functional and annotational preprocessor that are used to remove comments and extra spaces
-
 import re
+from transformers import RobertaTokenizer
+
+class Tokeniser:
+    def __init__(self, max_length=256):
+        self.tokeniser = RobertaTokenizer.from_pretrained("roberta-base")
+        self.preprocessor = CodePreprocessor()
+        self.max_length = max_length
+
+    def __call__(self, code_string: str):
+        processed_code = self.preprocessor.preprocess(code_string)
+        return self.tokeniser(
+            processed_code,
+            max_length=self.max_length,
+            truncation=True,
+            padding="max_length"
+        )
 
 
-class FunctionPreprocessor:
-    def get_function(self, code):
-        results = []
-        fn_list = re.findall(r"\ndef [a-zA-Z0-9_]+\(", code)
-        for fn in fn_list:
-            results.append(fn[4:-1].strip())
-        return results
+class CodePreprocessor:
+    """Combines function and annotation preprocessing."""
 
-    def determine_function(self, code, function_name):
-        num = len(re.findall(r"[^a-zA-Z]" + function_name + r"[^a-zA-Z]", code))
-        return False if num <= 1 else True
+    def get_function_names(self, code: str):
+        """Extracts all function names in the code."""
+        return re.findall(r"\ndef ([a-zA-Z0-9_]+)\(", code)
 
-    def delete_function(self, code, name):
-        start_id, _ = re.search("def " + name, code).span()
-        ptr = start_id
-        while ptr < len(code) - 1:
-            if code[ptr] == "\n" and re.search("[a-zA-Z]", code[ptr + 1]) is not None:
-                break
-            ptr += 1
-        if ptr != len(code) - 1:
-            end_id = ptr
-            code = code[:start_id] + code[end_id:]
+    def should_remove_function(self, code: str, function_name: str):
+        """Determines if a function appears only once."""
+        return len(re.findall(rf"\b{function_name}\b", code)) <= 1
+
+    def delete_function(self, code: str, function_name: str):
+        """Deletes a function definition and its body."""
+        pattern = rf"(?s)def {function_name}\(.*?\):.*?(?=\ndef |\Z)"
+        return re.sub(pattern, "", code)
+
+    def delete_annotations(self, code: str):
+        """Removes comments, import statements, and excessive whitespace."""
+        code = re.sub(r"#.*", "", code)  # Remove inline comments
+        code = "\n".join(line for line in code.splitlines() if not line.strip().startswith("import")) # Remove import statement
+        code = re.sub(r"\s+", " ", code).strip()  # ✅ Remove excessive spaces
         return code
 
-    def preprocess(self, code):
-        code = "\n" + code
-        fn_list = self.get_function(code)
-        if len(fn_list) == 0:
-            return code
-        for fn in fn_list:
-            flag = self.determine_function(code, fn)
-            if not flag:
-                code = self.delete_function(code, fn)
-        return code
+    def preprocess(self, code: str):
+        """Full preprocessing pipeline."""
+        code = "\n" + code.strip()
+        code = self.delete_annotations(code)
 
-class AnnotationPreprocessor:
-    def delete_annotation(self, code):
-        sens = code.split("\n")
-        sens_processed = [sen.split("#")[0] for sen in sens]  # Remove inline comments
-        return "\n".join(sens_processed)
+        for fn_name in self.get_function_names(code):
+            if self.should_remove_function(code, fn_name):
+                code = self.delete_function(code, fn_name)
 
-    def delete_import(self, code):
-        sens = code.split("\n")
-        sens_processed = [sen for sen in sens if "import" not in sen]  # Remove import statements
-        return "\n".join(sens_processed)
-
-    def preprocess(self, code):
-        code = self.delete_annotation(code)
-        code = self.delete_import(code)
-        code = re.sub(r"\s+", " ", code).strip()  # Remove excessive whitespace
-        return code
+        return re.sub(r"\s+", " ", code).strip()  # Remove excessive whitespace
