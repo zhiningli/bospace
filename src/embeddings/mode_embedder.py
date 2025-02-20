@@ -14,9 +14,9 @@ class Model_Embedder:
         self._load_pretrained_encoder()
 
     def _load_pretrained_encoder(self):
-        config_path = os.getenv("CONFIG_PATH")
+        config_path = os.getenv("MODEL_ENCODER_CONFIG_PATH")
         if not config_path:
-            raise ValueError("CONFIG_PATH environment variable is not set.")
+            raise ValueError("MODEL_ENCODER_CONFIG_PATH environment variable is not set.")
         config = AutoConfig.from_pretrained(config_path)
 
         self.model = Roberta_Model_Encoder(config)
