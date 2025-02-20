@@ -5,7 +5,7 @@ def create_datasets_table():
     query = """
     CREATE TABLE IF NOT EXISTS datasets (
         dataset_idx SERIAL PRIMARY KEY,
-        code JSONB NOT NULL,
+        code TEXT NOT NULL,
         meta_features REAL[] NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

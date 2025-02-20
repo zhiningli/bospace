@@ -8,11 +8,12 @@ class DatasetRepository:
     @staticmethod
     def create_dataset(dataset_idx: str, code: str, meta_features: list[float] = None) -> Dataset:
         query = """
-        INSERT INTO datasets(code, meta_features)
-        VALUES(%s, %s)
+        INSERT INTO datasets (dataset_idx, code, meta_features)
+        VALUES (%s, %s, %s)
         ON CONFLICT (dataset_idx) DO NOTHING
         RETURNING dataset_idx, code, meta_features, created_at;
         """
+
         with get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, (dataset_idx, code, meta_features))

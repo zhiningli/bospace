@@ -23,6 +23,6 @@ class Dataset:
         return cls(
             dataset_idx = row[0],
             code = row[1],
-            feature_vector = row[2],
-            created_At = row[3],
+            meta_features = row[2],
+            created_at = row[3],
         )
