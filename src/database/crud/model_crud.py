@@ -9,8 +9,8 @@ class ModelRepository:
     @staticmethod
     def create_model(model_idx: int, code: str, feature_vector: list[float] = None) -> Model:
         query = """
-        INSERT INTO models (code, feature_vector)
-        VALUES (%s, %s)
+        INSERT INTO models (model_idx, code, feature_vector)
+        VALUES (%s, %s, %s)
         ON CONFLICT (model_idx) DO NOTHING
         RETURNING model_idx, code, feature_vector, created_at;
         """

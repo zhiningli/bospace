@@ -1,7 +1,7 @@
 import csv
 import json
-from src.database.object.dataset import Dataset
-from src.database.crud.dataset_crud import DatasetRepository
+from src.database.object.model import Model
+from src.database.crud.model_crud import ModelRepository
 
 def insert_csv_to_postgres(csv_path: str):
     """Insert datasets from a CSV file into PostgreSQL using Dataset dataclass."""
@@ -11,27 +11,27 @@ def insert_csv_to_postgres(csv_path: str):
         for row in reader:
             try:
                 # ✅ 1. Create Dataset object from each row
-                dataset = Dataset(
-                    dataset_idx=int(row["dataset_idx"]),
-                    code=json.load(row["code"]),
-                    meta_features=[float(x) for x in row["meta_features"].split(",")]
+                model = Model(
+                    model_idx=int(row["model_idx"]),
+                    code=row["code"],
+                    feature_vector=row["feature_vectors"]
                 )
 
                 # ✅ 2. Use DatasetRepository to insert into DB
-                inserted_dataset = DatasetRepository.create_dataset(
-                    dataset_idx=dataset.dataset_idx,
-                    code=dataset.code,
-                    meta_features=dataset.meta_features
+                inserted_model = ModelRepository.create_model(
+                    model_idx=model.model_idx,
+                    code=model.code,
+                    feature_vector=model.feature_vector
                 )
 
-                if inserted_dataset:
-                    print(f"✅ Successfully inserted dataset {inserted_dataset.dataset_idx}")
+                if inserted_model:
+                    print(f"✅ Successfully inserted models {model.model_idx}")
                 else:
-                    print(f"⚠️ Skipped dataset {dataset.dataset_idx} (already exists)")
+                    print(f"⚠️ Skipped dataset {model.model_idx} (already exists)")
 
             except (ValueError, json.JSONDecodeError) as e:
                 print(f"❌ Error processing row {row}: {e}")
 
 if __name__ == "__main__":
-    csv_path = "dataset.csv"  # Update with the correct path
+    csv_path = "models.csv"  # Update with the correct path
     insert_csv_to_postgres(csv_path)
