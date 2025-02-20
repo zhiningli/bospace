@@ -1,23 +1,26 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-import os
+import psycopg2
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DB_name = os.getenv("DB_NAME")
+DB_user = os.getenv("DB_USER")
+DB_password = os.getenv("DB_PASSWORD")
+DB_host = os.getenv("DB_HOST")
+DB_port = os.getenv("DB_PORT")
 
-engine = create_engine(DATABASE_URL, echo = True)
+DB_PARAMS = {
+    "dbname": DB_name,
+    "user": DB_user,
+    "password": DB_password,
+    "host": DB_host,
+    "port": DB_port
+}
 
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-Base = declarative_base()
-
-def get_db():
-    """Dependency for database session"""
-    db = SessionLocal()
+def get_connection():
     try:
-        yield db
-    finally:
-        db.close()
-
+        connection = psycopg2.connect(**DB_PARAMS)
+        return connection
+    except Exception as e:
+        return None
