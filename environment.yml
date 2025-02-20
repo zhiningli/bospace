@@ -1,0 +1,18 @@
+name: bospace
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python = 3.10
+  - numpy
+  - pytorch
+  - cudatoolkit=11.8
+  - pip
+  - transfomer
+  - datasets
+  - dataclasses
+  - pip: 
+      - gpytorch
+      - botorch
+      - fastapi
