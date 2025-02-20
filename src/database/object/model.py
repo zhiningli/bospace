@@ -5,7 +5,7 @@ from datetime import datetime
 class Model:
     """Dataclass representing a row in the 'models' table """
     model_idx: int | None = None
-    code: dict[str, str] = field(default_factory=dict)
+    code: str = ""
     feature_vector: list[float] | None = None
     created_at: datetime = field(default_factory=datetime.now)
 

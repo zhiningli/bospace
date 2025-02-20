@@ -7,7 +7,7 @@ def create_models_table():
     query = """
     CREATE TABLE IF NOT EXISTS models (
     model_idx SERIAL PRIMARY KEY,
-    code JSONB NOT NULL,
+    code TEXT NOT NULL,
     feature_vector REAL[],
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
