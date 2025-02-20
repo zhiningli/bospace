@@ -8,7 +8,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.impute import SimpleImputer
 
-class DatasetMetaFeatureExtractor:
+class Dataset_Embedder:
     def __init__(self, dataset: np.ndarray = None, labels: np.ndarray = None):
         """
         Initializes the meta-feature extractor with optional dataset and labels.

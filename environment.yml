@@ -9,9 +9,12 @@ dependencies:
   - pytorch
   - cudatoolkit=11.8
   - pip
-  - transfomer
+  - transformers
   - datasets
   - dataclasses
+  - scipy
+  - scikit-learn
+  - python-dotenv
   - pip: 
       - gpytorch
       - botorch
