@@ -1,6 +1,5 @@
 from src.database.connection import get_connection
 from src.database.object.model import Model
-import json
 
 class ModelRepository:
 
@@ -8,11 +7,11 @@ class ModelRepository:
 
 
     @staticmethod
-    def create_model(model_idx: int, code:dict, feature_vector: list[float] = None) -> Model:
+    def create_model(model_idx: int, code: str, feature_vector: list[float] = None) -> Model:
         query = """
         INSERT INTO models (code, feature_vector)
         VALUES (%s, %s)
-        ON CONFLICT (model_idx) DO NOTHING;
+        ON CONFLICT (model_idx) DO NOTHING
         RETURNING model_idx, code, feature_vector, created_at;
         """
 
