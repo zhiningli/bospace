@@ -14,7 +14,7 @@ class RF_dataset_ktrc_inferer:
     def model(self):
         """Lazy loading using getter function"""
         if self._model is None:
-              self._model = RandomForestRegressor(
+            self._model = RandomForestRegressor(
             n_estimators=100,
             max_depth=10,
             min_samples_split=2,
