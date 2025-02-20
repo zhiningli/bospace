@@ -15,6 +15,9 @@ dependencies:
   - scipy
   - scikit-learn
   - python-dotenv
+  - sqlalchemy
+  - psycopg2
+  - pydantic
   - pip: 
       - gpytorch
       - botorch
