@@ -1,6 +1,8 @@
 from src.database.connection import get_connection
 
+import logging
 
+logger = logging.getLogger("database")
 def create_models_table():
     """Crete models table in postgresql"""
 
@@ -13,11 +15,17 @@ def create_models_table():
     );
     """
 
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            conn.commit()
-
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                logger.debug("creating models table")
+                cursor.execute(query)
+                conn.commit()
+                logger.info("models table created")
+        
+    except Exception as e:
+        logger.error("Error creating models table")
 
 if __name__ == "__main__":
+
     create_models_table()

@@ -1,4 +1,7 @@
 from src.database.connection import get_connection
+import logging
+
+logger = logging.getLogger("database")
 
 def create_similarity_table():
     # Create ENUM type if not exists
@@ -52,6 +55,8 @@ def create_similarity_table():
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
+
+                logging.debug("Creating similarity table")
                 # Create ENUM type
                 cursor.execute(query_enum)
 
@@ -59,11 +64,10 @@ def create_similarity_table():
                 cursor.execute(query_table)
 
                 conn.commit()
-
-        print(" Ranks table created successfully with polymorphic keys for both objects!")
+                logging.info("Similarity table created")
 
     except Exception as e:
-        print(f"Failed to create ranks table: {e}")
+        logging.error(f"Error creating similarity table {e}", exc_info=True)
 
 if __name__ == "__main__":
     create_similarity_table()

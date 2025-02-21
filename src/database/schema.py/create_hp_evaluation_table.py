@@ -1,6 +1,8 @@
 from src.database.connection import get_connection
 
+import logging
 
+logger = logging.getLogger("database")
 def create_hp_evaluation_table():
 
     query = """
@@ -14,12 +16,18 @@ def create_hp_evaluation_table():
         FOREIGN KEY (dataset_idx) REFERENCES datasets(dataset_idx) ON DELETE CASCADE
     );
     """
-
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            conn.commit()
+    try: 
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                logger.debug("Creating hp_evaluation_table")
+                cursor.execute(query)
+                conn.commit()
+                logger.info("hp_evaluation_table created")
+    except Exception as e:
+        logger.error("Error creating hp evaluation table", exc_info=True)
 
 if __name__ == "__main__":
+
     create_hp_evaluation_table()
+
 

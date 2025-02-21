@@ -1,4 +1,7 @@
 from src.database.connection import get_connection
+import logging
+
+logger = logging.getLogger("database")
 
 def create_scripts_table():
     query = """
@@ -19,10 +22,16 @@ def create_scripts_table():
             ON DELETE CASCADE
     );
     """
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            conn.commit()
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                logging.debug("Creating script table")
+                cursor.execute(query)
+                conn.commit()
+                logging.info("Scripts table created")
+    except Exception as e:
 
+        logging.error(f"Error creating scripts table {e}", exc_info=True)
 if __name__ == "__main__":
+
     create_scripts_table()

@@ -1,5 +1,7 @@
 from src.database.connection import get_connection
+import logging
 
+logger = logging.getLogger("database")
 def create_results_table():
     query_enum = """
     DO $$
@@ -38,4 +40,6 @@ def create_results_table():
             conn.commit()
     
 if __name__ == "__main__":
+    logger.debug("creating results table")
     create_results_table()
+    logger.info("results table created")
