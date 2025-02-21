@@ -1,5 +1,5 @@
 from src.database.connection import get_connection
-from src.database.object.model import Model
+from src.database.object import Model
 
 class ModelRepository:
 

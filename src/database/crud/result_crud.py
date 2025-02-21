@@ -1,5 +1,5 @@
 from src.database.connection import get_connection
-from src.database.object.result import Result
+from src.database.object import Result
 import json
 
 class ResultRepository:

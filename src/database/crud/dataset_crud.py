@@ -1,6 +1,5 @@
 from src.database.connection import get_connection
-from src.database.object.dataset import Dataset
-
+from src.database.object import Dataset
 class DatasetRepository:
 
     """CRUD operations for the 'datasets' table using the dataset dataclass """

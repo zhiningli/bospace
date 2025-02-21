@@ -1,5 +1,5 @@
 from src.database.connection import get_connection
-from src.database.object.script import Script
+from src.database.object import Script
 import json
 
 class ScriptRepository:

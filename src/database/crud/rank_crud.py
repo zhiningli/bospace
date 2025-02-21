@@ -1,5 +1,5 @@
 from src.database.connection import get_connection
-from src.database.object.rank import Rank
+from src.database.object import Rank
 import json
 
 class RankRepository:
