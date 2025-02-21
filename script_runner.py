@@ -1,28 +1,28 @@
 from src.database.connection import get_connection
 
-def create_rank_table():
+def create_similarity_table():
     # Create ENUM type if not exists
     query_enum = """
     DO $$
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'rank_object_enum') THEN
-            CREATE TYPE rank_object_enum AS ENUM ('model', 'dataset');
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'similarity_object_enum') THEN
+            CREATE TYPE similarity_object_enum AS ENUM ('model', 'dataset');
         END IF;
     END $$;
     """
 
-    # Create the ranks table with polymorphic foreign keys for both objects
+    # Create the similarities table with polymorphic foreign keys for both objects
     query_table = """
-    CREATE TABLE IF NOT EXISTS ranks (
-        ranks_idx SERIAL PRIMARY KEY,
-        object_type rank_object_enum NOT NULL, -- 'dataset' or 'model' for both objects
+    CREATE TABLE IF NOT EXISTS similarities (
+        similarity_idx SERIAL PRIMARY KEY,
+        object_type similarity_object_enum NOT NULL, -- 'dataset' or 'model' for both objects
         object_1_idx INT NOT NULL,
         object_1 REAL[] NOT NULL,
 
         object_2_idx INT NOT NULL,
         object_2 REAL[] NOT NULL,
 
-        rank REAL NOT NULL,
+        similarity REAL NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
         -- Foreign keys based on object_type
@@ -66,4 +66,4 @@ def create_rank_table():
         print(f"Failed to create ranks table: {e}")
 
 if __name__ == "__main__":
-    create_rank_table()
+    create_similarity_table()

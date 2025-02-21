@@ -1,0 +1,1 @@
+from src.service.embeddings import Model_Embedder

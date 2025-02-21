@@ -14,4 +14,4 @@ def drop_table(table_name: str):
         print(f"Failed to drop table '{table_name}': {e}")
 
 if __name__ == "__main__":
-    drop_table("datasets")
+    drop_table("ranks")
