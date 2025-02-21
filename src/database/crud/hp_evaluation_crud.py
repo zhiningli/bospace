@@ -80,7 +80,6 @@ class HPEvaluationRepository:
         query = """
         SELECT 
             dataset_idx,
-            elem_index AS hyperparameter_idx,
             ROUND(AVG((elem.value->>'accuracy')::NUMERIC), 4) AS avg_accuracy
         FROM
             hp_evaluations,
@@ -88,7 +87,7 @@ class HPEvaluationRepository:
         GROUP BY
             dataset_idx, elem_index
         ORDER BY 
-            dataset_idx, elem_index
+            dataset_idx ASC, elem_index ASC;
         """
 
         with get_connection() as conn:
@@ -108,7 +107,6 @@ class HPEvaluationRepository:
         query = """
         SELECT 
             model_idx,
-            elem_index AS hyperparameter_idx,
             ROUND(AVG((elem.value->>'accuracy')::NUMERIC), 4) AS avg_accuracy
         FROM
             hp_evaluations,
@@ -116,7 +114,7 @@ class HPEvaluationRepository:
         GROUP BY
             model_idx, elem_index
         ORDER BY 
-            model_idx, elem_index;
+            model_idx ASC, elem_index ASC;
         """
 
         with get_connection() as conn:

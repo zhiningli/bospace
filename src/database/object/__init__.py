@@ -3,6 +3,6 @@ from .model import Model
 from .hp_evaluation import HP_evaluation
 from .result import Result
 from .script import Script
-from .rank import Rank
+from .similarity import Similarity
 
-__all__ = ["Dataset", "Model", "HP_evaluation", "Result", "Script", "Rank"]
+__all__ = ["Dataset", "Model", "HP_evaluation", "Result", "Script", "Similarity"]
