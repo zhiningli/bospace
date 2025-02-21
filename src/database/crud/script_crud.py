@@ -41,7 +41,7 @@ class ScriptRepository:
         query = """
         SELECT script_idx, dataset_idx, model_idx, script_code, sgd_best_performing_configuration, created_at
         FROM scripts
-        WHERE model_idx = %s dataset_dix = %s;
+        WHERE model_idx = %s AND dataset_dix = %s;
         """
         with get_connection() as conn:
             with conn.cursor() as cursor:
