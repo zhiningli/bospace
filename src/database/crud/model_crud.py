@@ -38,9 +38,9 @@ class ModelRepository:
                     return Model.from_row(row)
                 
     @staticmethod
-    def get_all_models_with_ids() -> list[tuple[int, str]] | None:
+    def get_all_models() -> list[tuple[int, str]] | None:
         query = """
-        SELECT model_idx, code
+        SELECT *
         FROM models;
         """
 
@@ -48,7 +48,7 @@ class ModelRepository:
             with conn.cursor() as cursor:
                 cursor.execute(query)
                 rows = cursor.fetchall()
-                return [(row[0], row[1]) for row in rows] if rows else []
+                return [Model.from_row(row) for row in rows] if rows else []
                 
     @staticmethod
     def update_feature_vector(model_idx: int, feature_vector: list[float]) -> bool:

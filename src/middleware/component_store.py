@@ -58,7 +58,6 @@ class ComponentStore:
                 raise ValueError(f"Forbidden pattern found in code: {pattern}")
 
     def instantiate_code_classes(self) -> None:
-        print(type(self.code_string))
         self.validate_code_string(target_string=self.code_string)
         exec(self.code_string, self.namespace)
 
@@ -66,16 +65,13 @@ class ComponentStore:
         self.objective_func = self.namespace.get("train_simple_nn")
         if not callable(self.objective_func):
             raise ValueError("No valid objective function named 'train_simple_nn' detechted")
-        print("Extracted Objective Fucntion: train_simple_nn")
 
         # Extracting the model class
         self.model_instance = self.namespace.get("Model")
         if not self.model_instance or not issubclass(self.model_instance, torch.nn.Module):
             raise ValueError("No valid model class named 'Model' found")
-        print(f"Extracted Model: {self.model_instance}")
 
         # Extracting the dataset object
         self.dataset_instance = self.namespace.get("numpy_dataset")
         if self.dataset_instance is None or not isinstance(self.dataset_instance, (torch.utils.data.Dataset, np.ndarray)):
             raise ValueError("No valid dataset named 'numpy_dataset' found")
-        print(f"Extracted dataset shape: {self.dataset_instance.shape}")

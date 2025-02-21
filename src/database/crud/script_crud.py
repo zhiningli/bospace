@@ -55,7 +55,7 @@ class ScriptRepository:
         query = """
         SELECT script_idx, dataset_idx, model_idx, script_code, sgd_best_performing_configuration, created_at
         FROM scripts
-        WHERE model_idx = %s AND dataset_dix = %s;
+        WHERE model_idx = %s AND dataset_idx = %s;
         """
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -65,7 +65,20 @@ class ScriptRepository:
 
 
     @staticmethod
-    def update_script(script_idx: int, sgd_config: dict) -> bool:
+    def update_script_code(script_idx: int, script_code: str) -> bool:
+        """Update the script code and its best configuration."""
+        query = """
+        UPDATE scripts
+        SET script_code = %s
+        WHERE script_idx = %s;
+        """
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, (script_code, script_idx))
+                return cursor.rowcount > 0
+
+    @staticmethod
+    def update_script_sgd_config(script_idx: int, sgd_config: dict) -> bool:
         """Update the script code and its best configuration."""
         query = """
         UPDATE scripts

@@ -7,7 +7,7 @@ class HP_evaluation:
     hp_evaluation_id: int | None = None
     model_idx: int = 0
     dataset_idx: int = 0
-    result: list[dict[str, float|int]] = field(default_factory=list)
+    results: list[dict[str, float|int]] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.now)
 
     def to_dict(self) -> dict:

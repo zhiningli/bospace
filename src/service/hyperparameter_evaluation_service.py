@@ -7,16 +7,19 @@ Results for saved to the HPO-evaluation table.
 from src.database.crud import ModelRepository
 from src.database.crud import DatasetRepository
 from src.database.crud import HPEvaluationRepository
+from src.database.crud import ScriptRepository
 from src.middleware.component_store import ComponentStore
+from src.assets.train_via_sgd import code_str
 import numpy as np
+
 from scipy.stats import qmc
 
 class HPEvalutaionService:
 
     def __init__(self):
 
-        self.model_candidates_index = []
-        self.dataset_candidates_index = []
+        self.model_benchmarks_index = []
+        self.dataset_benchmarks_index = [4, 8, 12, 17, 20, 24, 34, 40, 44, 48]
         self.manual_seed = 42
         self.search_space = {
             'learning_rate': np.logspace(-5, -1, num=50).tolist(),  # Logarithmically spaced values
@@ -24,91 +27,64 @@ class HPEvalutaionService:
             'weight_decay': [0.0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
             'num_epochs': [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90],}
         self.store = ComponentStore()
+        self.samples = self._generate_hp_samples()
 
-    def generate_hp_samples(self) -> np.ndarray:
+    def _generate_hp_samples(self) -> np.ndarray:
         bounds = [ [0, len(self.search_space['learning_rate'])-1], [0,len(self.search_space['momentum'])-1 ], [0, len(self.search_space['weight_decay'])-1], [0,len(self.search_space['num_epochs'])-1]]          
         n_samples = 15
-        samples = qmc.Sobol(d=len(bounds), seed=42).random(n=n_samples)
+        samples = qmc.Sobol(d=len(bounds), seed=self.manual_seed).random(n=n_samples)
         scaled_samples = qmc.scale(samples, [b[0] for b in bounds], [b[1] for b in bounds])
 
         discrete_samples = np.rint(scaled_samples).astype(int)
-        return discrete_samples          
+        return discrete_samples 
 
-    def run_hp_evaluations_for_all_models():
+    def run_hp_evaluations_for_all_models(self):
 
-        models = ModelRepository.get_all_models_with_ids()
+        dataset_benchmarks = [DatasetRepository.get_dataset(i) for i in self.dataset_benchmarks_index]
+        models = ModelRepository.get_all_models()
+        for dataset_benchmark in dataset_benchmarks:
+                
+            dataset_idx = dataset_benchmark.dataset_idx
+            dataset_code = dataset_benchmark.code
+            dataset_input_size = dataset_benchmark.input_size
+            dataset_num_classes = dataset_benchmark.num_classes
 
-                code_str = f"""
-        import torch
-        import torch.nn as nn
-        import torch.optim as optim
-        from torch.utils.data import DataLoader, TensorDataset
-        from sklearn.datasets import make_classification
-        {dataset}
-        {model}
-        def train_simple_nn(learning_rate, momentum, weight_decay, num_epochs):
-            # Initialize model, loss function, and optimizer
-            model = Model(input_size={input_size}, num_classes={num_classes})  # Adjust input size to match your dataset
-            criterion = nn.CrossEntropyLoss()
-            optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+            for model in models:
+                model_idx = model.model_idx
+                model_code = model.code
+                print(f"Model idx {model_idx} Dataset idx {dataset_idx} running")
+                if HPEvaluationRepository.exists_hp_evaluation(model_idx=model_idx, dataset_idx=dataset_idx):
+                    print(f"HPO evalution for model {model_idx}, dataset {dataset_idx} already exists in table, skipping ")
+                    continue
 
-            # Training loop
-            for epoch in range(num_epochs):
-                model.train()
-                running_loss = 0.0
-                for inputs, labels in train_loader:
-                    optimizer.zero_grad()
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
+                script = ScriptRepository.get_script_by_model_and_dataset_idx(model_idx= model_idx, dataset_idx= dataset_idx)
 
-                    loss.backward()
 
-                    optimizer.step()
-
-                    running_loss += loss.item()
-            # Testing the model
-            model.eval()
-            correct = 0
-            total = 0
-            with torch.no_grad():
-                for inputs, labels in test_loader:
-                    outputs = model(inputs)
-                    _, predicted = torch.max(outputs, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-
-            accuracy = 100 * correct / total
-            return accuracy
-        """
-                print(f"Model idx {model_idx} Dataset idx {dataset_idx}")
-                store.code_string = code_str
-                store.instantiate_code_classes()
-                print(store.dataset_instance.shape)
-                labels = store.dataset_instance[:, -1]  # Extract last column (labels)
-                unique_labels = np.unique(labels)  # Find unique labels
-                num_labels = len(unique_labels) 
-                print("Labels", num_labels)
-
+                current_code_str = code_str.format(dataset=dataset_code, model = model_code, input_size = dataset_input_size, num_classes = dataset_num_classes)
+                
+                self.store.code_string = current_code_str
+                self.store.instantiate_code_classes()
                 train_y = []
-                for x in tqdm(train_x, desc="Inital sampling"):
-                    train_y.append(botorch_objective(x, store).item())
-
-                script_object = {
-                    "script": code_str,
-                    "model_idx": model_idx,
-                    "dataset_idx": dataset_idx,
-                    "script_idx": dataset_idx * 1000 + model_idx,
-                    "results": {
-                        str(idx): {
-                            "learning_rate": search_space["learning_rate"][int(train_x[idx][0].item())],
-                            "momentum": search_space["momentum"][int(train_x[idx][1].item())],
-                            "weight_decay": search_space["weight_decay"][int(train_x[idx][2].item())],
-                            "num_epochs": search_space["num_epochs"][int(train_x[idx][3].item())],
-                            "accuracy": train_y[idx]  # Store accuracy as the evaluation metric
-                        }
-                        for idx in range(len(train_y))
+                for sample in self.samples:
+                    kwargs = {
+                        "learning_rate": self.search_space["learning_rate"][sample[0]],
+                        "momentum": self.search_space["momentum"][sample[1]],
+                        "weight_decay": self.search_space["weight_decay"][sample[2]],
+                        "num_epochs": self.search_space["num_epochs"][sample[3]]
                     }
-                }
 
-                script_repo.save_scripts(script_object)
+                    kwargs["accuracy"] = self.store.objective_func(**kwargs)
+                    print(kwargs)
+                    train_y.append(kwargs)
+                    
+                HPEvaluationRepository.create_hp_evaluation(
+                    model_idx=model_idx,
+                    dataset_idx=dataset_idx,
+                    results=train_y
+                )
+
+                ScriptRepository.update_script_code(
+                    script_idx=script.script_idx,
+                    script_code = current_code_str
+                )
 
