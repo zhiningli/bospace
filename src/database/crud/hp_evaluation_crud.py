@@ -20,7 +20,7 @@ class HPEvaluationRepository:
     @staticmethod
     def get_hp_evaluation_by_id(hp_evaluation_id: int) -> HP_evaluation | None:
         query = """
-        SELECT * FROM ranks
+        SELECT * FROM hp_evaluations
         WHERE hp_evaluation_id = %s;
         """
         with get_connection() as conn:
@@ -32,7 +32,7 @@ class HPEvaluationRepository:
     @staticmethod
     def update_results(hp_evaluation_id: int, new_results: list[dict]) -> bool:
         query = """
-        UPDATE ranks
+        UPDATE hp_evalutaions
         SET results = %s
         WHERE hp_evaluation_id = %s;
         """
@@ -44,10 +44,26 @@ class HPEvaluationRepository:
     @staticmethod
     def delete_hp_evaluation(hp_evaluation_id: int) -> bool:
         query = """
-        DELETE FROM ranks
+        DELETE FROM hp_evaluations
         WHERE hp_evaluation_id = %s;
         """
         with get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, (hp_evaluation_id,))
                 return cursor.rowcount > 0
+
+    @staticmethod
+    def exists_hp_evaluation(model_idx: int, dataset_idx: int) -> bool:
+        """Check if a model_idx and dataset_idx pair exists in the repository."""
+        query = """
+        SELECT EXISTS(
+            SELECT 1 
+            FROM hp_evaluations
+            WHERE model_idx = %s 
+            AND dataset_idx = %s
+        );
+        """
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, (model_idx, dataset_idx))
+                return cursor.fetchone()[0]
