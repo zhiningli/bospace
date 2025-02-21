@@ -18,8 +18,8 @@ class HPEvalutaionService:
 
     def __init__(self):
 
-        self.model_benchmarks_index = []
-        self.dataset_benchmarks_index = [4, 8, 12, 17, 20, 24, 34, 40, 44, 48]
+        self.model_benchmarks_index = [3, 5, 20, 1, 77, 99, 53, 30, 32, 38, 41, 10]
+        self.dataset_benchmarks_index = [4, 8, 12, 17, 20, 24, 34, 40, 44, 98]
         self.manual_seed = 42
         self.search_space = {
             'learning_rate': np.logspace(-5, -1, num=50).tolist(),  # Logarithmically spaced values
@@ -88,3 +88,51 @@ class HPEvalutaionService:
                         script_code = current_code_str
                     )
 
+
+    def run_hp_evaluations_for_all_datasets(self):
+
+        model_benchmarks = ModelRepository.get_all_models()
+        datasets = DatasetRepository.get_all_dataset()
+        for model_benchmark in model_benchmarks:
+                
+            model_idx = model_benchmark.model_idx
+            model_code = model_benchmark.code
+
+            for dataset in datasets:
+                dataset_input_size = dataset.input_size
+                dataset_num_classes = dataset.num_classes
+                dataset_idx = dataset.dataset_idx
+                dataset_code = dataset.code
+                print(f"Model idx {model_idx} Dataset idx {dataset_idx} running")
+                if HPEvaluationRepository.exists_hp_evaluation(model_idx=model_idx, dataset_idx=dataset_idx):
+                    print(f"HPO evalution for model {model_idx}, dataset {dataset_idx} already exists in table, skipping ")
+                    continue
+
+                current_code_str = code_str.format(dataset=dataset_code, model = model_code, input_size = dataset_input_size, num_classes = dataset_num_classes)
+                
+                self.store.code_string = current_code_str
+                self.store.instantiate_code_classes()
+                train_y = []
+                for sample in self.samples:
+                    kwargs = {
+                        "learning_rate": self.search_space["learning_rate"][sample[0]],
+                        "momentum": self.search_space["momentum"][sample[1]],
+                        "weight_decay": self.search_space["weight_decay"][sample[2]],
+                        "num_epochs": self.search_space["num_epochs"][sample[3]]
+                    }
+
+                    kwargs["accuracy"] = self.store.objective_func(**kwargs)
+                    train_y.append(kwargs)
+                    
+                HPEvaluationRepository.create_hp_evaluation(
+                    model_idx=model_idx,
+                    dataset_idx=dataset_idx,
+                    results=train_y
+                )
+                
+                script = ScriptRepository.get_script_by_model_and_dataset_idx(model_idx= model_idx, dataset_idx= dataset_idx)
+                if script:
+                    ScriptRepository.update_script_code(
+                        script_idx=script.script_idx,
+                        script_code = current_code_str
+                    )

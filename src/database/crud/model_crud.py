@@ -38,7 +38,7 @@ class ModelRepository:
                     return Model.from_row(row)
                 
     @staticmethod
-    def get_all_models() -> list[tuple[int, str]] | None:
+    def get_all_models() -> list[Model] | None:
         query = """
         SELECT *
         FROM models;

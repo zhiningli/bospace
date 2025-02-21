@@ -34,6 +34,18 @@ class DatasetRepository:
                 row = cursor.fetchone()
                 if row:
                     return Dataset.from_row(row)   
+                
+    @staticmethod
+    def get_all_dataset() -> list[Dataset] | None:
+        query = """
+        SELECT * FROM datasets
+        """
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                if rows:
+                    return [Dataset.from_row(row) for row in rows if rows]
 
 
     @staticmethod
