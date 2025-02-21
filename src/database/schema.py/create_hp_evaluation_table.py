@@ -1,17 +1,17 @@
 from src.database.connection import get_connection
 
 
-def create_ranks_table():
+def create_hp_evaluation_table():
 
     query = """
-    CREATE TABLE IF NOT EXISTS ranks (
-        rank_id SERIAL PRIMARY KEY,
+    CREATE TABLE IF NOT EXISTS hp_evaluations (
+        hp_evaluation_id SERIAL PRIMARY KEY,
         model_idx INTEGER NOT NULL,
-        datset_idx INTERGET NOT NULL,
+        dataset_idx INTEGER NOT NULL,
         results JSONB[] NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (model_idx) REFERENCES models(model_idx) ON DELETE CASCADE,
-        FOREIGN KEY (dataset_idx) REFERENCES datasets(datset_idx) ON DELETE CASCADE
+        FOREIGN KEY (dataset_idx) REFERENCES datasets(dataset_idx) ON DELETE CASCADE
     );
     """
 
@@ -21,4 +21,5 @@ def create_ranks_table():
             conn.commit()
 
 if __name__ == "__main__":
-    create_ranks_table()
+    create_hp_evaluation_table()
+
