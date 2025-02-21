@@ -101,3 +101,4 @@ class ScriptRepository:
             with conn.cursor() as cursor:
                 cursor.execute(query, (script_idx,))
                 return cursor.rowcount > 0
+            

@@ -74,7 +74,6 @@ class HPEvalutaionService:
                     }
 
                     kwargs["accuracy"] = self.store.objective_func(**kwargs)
-                    print(kwargs)
                     train_y.append(kwargs)
                     
                 HPEvaluationRepository.create_hp_evaluation(
@@ -83,8 +82,9 @@ class HPEvalutaionService:
                     results=train_y
                 )
 
-                ScriptRepository.update_script_code(
-                    script_idx=script.script_idx,
-                    script_code = current_code_str
-                )
+                if script:
+                    ScriptRepository.update_script_code(
+                        script_idx=script.script_idx,
+                        script_code = current_code_str
+                    )
 
