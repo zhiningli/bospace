@@ -47,6 +47,20 @@ class ResultRepository:
                 cursor.execute(query, (script_idx,))
                 rows = cursor.fetchall()
                 return [Result.from_row(row) for row in rows]
+            
+    @staticmethod
+    def get_results_by_script_and_result_type(script_idx: int, result_type: str) -> Result:
+        """Retrieve all results for a specific script."""
+        query = """
+        SELECT * FROM results
+        WHERE script_idx = %s AND result_type = %s::result_type_enum;
+        """
+
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, (script_idx, result_type))
+                row = cursor.fetchone()
+                return Result.from_row(row)
 
     @staticmethod
     def update_sgd_config(script_idx: int, result_type: str, new_config: dict) -> bool:

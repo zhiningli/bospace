@@ -34,6 +34,20 @@ class ScriptRepository:
                 row = cursor.fetchone()
                 return Script.from_row(row) if row else None
             
+    @staticmethod
+    def get_script_id_by_model_idx_dataset_idx(model_idx: int, dataset_idx: int) -> int:
+        query = """
+        SELECT script_idx
+        FROM scripts
+        WHERE model_idx = %s AND dataset_idx = %s;
+        """
+
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, (model_idx, dataset_idx))
+                script_idx = cursor.fetchone()
+                return script_idx
+            
 
     @staticmethod
     def get_script_by_model_and_dataset_idx(model_idx: int, dataset_idx: int) -> Script | None:

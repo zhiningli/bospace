@@ -23,31 +23,28 @@ def import_json_to_postgres():
     with open(json_file_path, "r") as file:
         data = json.load(file)
 
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            for entry in data:
-                try:
-                    script = Script(
-                        model_idx=entry["model_idx"],
-                        dataset_idx= entry["dataset_idx"],
-                        script_code=entry["script"],
-                        sgd_best_performing_configuration=extract_sgd_config(entry)
-                    )
-                # ✅ 2. Use DatasetRepository to insert into DB
-                    inserted_script = ScriptRepository.create_script(
-                        model_idx=script.model_idx,
-                        dataset_idx= script.dataset_idx,
-                        script_code= script.script_code,
-                        sgd_config= script.sgd_best_performing_configuration
-                    )
-                    if inserted_script:
-                                print(f"✅ Successfully inserted models {inserted_script.script_idx}")
-                    else:
-                        print(f"⚠️ Skipped dataset {script.script_idx} (already exists)")
-                except (ValueError, json.JSONDecodeError) as e:
-                    print(f"❌ Error processing row {entry}: {e}")
+    for entry in data:
 
-            print("✅ JSON data imported into PostgreSQL successfully!")
+        if "unconstrained_result" in entry.keys():
+            script = Script(
+                model_idx=entry["model_idx"],
+                dataset_idx= entry["dataset_idx"],
+                sgd_best_performing_configuration=extract_sgd_config(entry)
+            )
+        # ✅ 2. Use DatasetRepository to insert into DB
+            inserted_script = ScriptRepository.create_script(
+                model_idx=script.model_idx,
+                dataset_idx= script.dataset_idx,
+                script_code= script.script_code,
+                sgd_config= script.sgd_best_performing_configuration
+            )
+            if inserted_script:
+                        print(f"✅ Successfully inserted models {inserted_script.script_idx}")
+            else:
+                print(f"⚠️ Skipped dataset {script.script_idx} (already exists)")
+
+
+    print("✅ JSON data imported into PostgreSQL successfully!")
 
 if __name__ == "__main__":
     import_json_to_postgres()
