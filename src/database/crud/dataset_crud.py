@@ -5,17 +5,17 @@ class DatasetRepository:
     """CRUD operations for the 'datasets' table using the dataset dataclass """
 
     @staticmethod
-    def create_dataset(dataset_idx: str, code: str, meta_features: list[float] = None) -> Dataset:
+    def create_dataset(dataset_idx: str, code: str, input_size: int, num_classes: int,  meta_features: list[float] = None) -> Dataset:
         query = """
-        INSERT INTO datasets (dataset_idx, code, meta_features)
-        VALUES (%s, %s, %s)
+        INSERT INTO datasets (dataset_idx, code, input_size, num_classes, meta_features)
+        VALUES (%s, %s, %s, %s, %s)
         ON CONFLICT (dataset_idx) DO NOTHING
-        RETURNING dataset_idx, code, meta_features, created_at;
+        RETURNING dataset_idx, code, input_size, num_classes, meta_features, created_at;
         """
 
         with get_connection() as conn:
             with conn.cursor() as cursor:
-                cursor.execute(query, (dataset_idx, code, meta_features))
+                cursor.execute(query, (dataset_idx, code, input_size, num_classes, meta_features))
                 row = cursor.fetchone()
                 if row:
                     return Dataset.from_row(row)

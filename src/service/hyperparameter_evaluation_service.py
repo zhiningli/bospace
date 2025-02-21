@@ -7,8 +7,9 @@ Results for saved to the HPO-evaluation table.
 from src.database.crud import ModelRepository
 from src.database.crud import DatasetRepository
 from src.database.crud import HPEvaluationRepository
+from src.middleware.component_store import ComponentStore
 import numpy as np
-import torch
+from scipy.stats import qmc
 
 class HPEvalutaionService:
 
@@ -22,23 +23,21 @@ class HPEvalutaionService:
             'momentum': [0.01 * x for x in range(100)],  # Linear space
             'weight_decay': [0.0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
             'num_epochs': [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90],}
-        self.bounds = torch.Tensor([
-                            [0, 0, 0, 0],
-                            [len(self.search_space['learning_rate'])-1, 
-                            len(self.search_space['momentum'])-1, 
-                            len(self.search_space['weight_decay'])-1, 
-                            len(self.search_space['num_epochs'])-1]], )
+        self.store = ComponentStore()
+
+    def generate_hp_samples(self) -> np.ndarray:
+        bounds = [ [0, len(self.search_space['learning_rate'])-1], [0,len(self.search_space['momentum'])-1 ], [0, len(self.search_space['weight_decay'])-1], [0,len(self.search_space['num_epochs'])-1]]          
+        n_samples = 15
+        samples = qmc.Sobol(d=len(bounds), seed=42).random(n=n_samples)
+        scaled_samples = qmc.scale(samples, [b[0] for b in bounds], [b[1] for b in bounds])
+
+        discrete_samples = np.rint(scaled_samples).astype(int)
+        return discrete_samples          
 
     def run_hp_evaluations_for_all_models():
 
-        for model_idx in range(102, 104):
-            model_module = importlib.import_module(f"src.scripts.models.model{model_idx}")
-            model = getattr(model_module, "model", None)
-            for dataset_idx in range(6, 17):
-                dataset_module = importlib.import_module(f"src.scripts.datasets.dataset{dataset_idx}")
-                dataset = getattr(dataset_module, "dataset", None)
-                input_size = getattr(dataset_module, "input_size")
-                num_classes = getattr(dataset_module, "num_classes")
+        models = ModelRepository.get_all_models_with_ids()
+
                 code_str = f"""
         import torch
         import torch.nn as nn
