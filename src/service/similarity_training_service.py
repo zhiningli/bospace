@@ -4,12 +4,15 @@ This service handles preparation of rank results, training XGBoost model for mod
 from src.database.crud import DatasetRepository, SimilarityRepository, HPEvaluationRepository, ModelRepository
 import itertools
 import numpy as np
+from dotenv import load_dotenv
 from collections import defaultdict
 
 class SimilarityTrainingService:
 
     def __init__(self):
-        pass
+        load_dotenv()
+        self.dataset_similarity_model = None
+        self.model_similarity_model = None
 
     def prepare_data_for_rank_training(self):
         
