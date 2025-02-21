@@ -67,3 +67,60 @@ class HPEvaluationRepository:
             with conn.cursor() as cursor:
                 cursor.execute(query, (model_idx, dataset_idx))
                 return cursor.fetchone()[0]
+
+
+    @staticmethod
+    def get_average_accuracy_per_JSON_array_index_group_by_dataset() -> list[tuple[int, int, float]]:
+        """This method unrest the JSONB array and assign an index to each element using WITH ORGINALITY
+        Followed by grouping by dataset_idx and the array_index
+        Calculating the average per index per dataset
+        Used for expected performance for each dataset
+        """
+
+        query = """
+        SELECT 
+            dataset_idx,
+            elem_index AS hyperparameter_idx,
+            ROUND(AVG((elem.value->>'accuracy')::NUMERIC), 4) AS avg_accuracy
+        FROM
+            hp_evaluations,
+            LATERAL jsonb_array_elements(results) WITH ORDINALITY AS elem(value, elem_index)
+        GROUP BY
+            dataset_idx, elem_index
+        ORDER BY 
+            dataset_idx, elem_index
+        """
+
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                return rows
+
+    @staticmethod
+    def get_average_accuracy_per_JSON_array_index_group_by_model() -> list[tuple[int, int, float]]:
+        """This method unrest the JSONB array and assign an index to each element using WITH ORGINALITY
+        Followed by grouping by model_idx and the array_index
+        Calculating the average per index per model
+        Used for expected performance for each model
+        """
+
+        query = """
+        SELECT 
+            model_idx,
+            elem_index AS hyperparameter_idx,
+            ROUND(AVG((elem.value->>'accuracy')::NUMERIC), 4) AS avg_accuracy
+        FROM
+            hp_evaluations,
+            LATERAL jsonb_array_elements(results) WITH ORDINALITY AS elem(value, elem_index)
+        GROUP BY
+            model_idx, elem_index
+        ORDER BY 
+            model_idx, elem_index;
+        """
+
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                return rows
