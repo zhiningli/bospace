@@ -21,7 +21,7 @@ class Model_Embedder:
 
         self.model = Roberta_Model_Encoder(config)
 
-        model_weights = load_file(f"{config_path}/model.safetensors", device="CPU")
+        model_weights = load_file(f"{config_path}/model.safetensors", device="cuda" if torch.cuda.is_available() else "cpu")
         self.model.load_state_dict(model_weights, strict=True)
 
     def get_embedding(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
@@ -40,7 +40,7 @@ class Model_Embedder:
         with torch.no_grad():
             outputs = self.model.roberta(input_ids = input_ids, attention_mask = attention_mask, return_dict=True)
             emb = self.model.last_4_layer_avg(outputs)
-            emb = self.net(emb)
+            emb = self.model.net(emb)
             emb = F.normalize(emb, p=2, dim=-1)
             return emb
 

@@ -6,9 +6,17 @@ load_dotenv()
 import os
 import logging
 import logging.config
+from logging.handlers import RotatingFileHandler
 
 # Log format
 LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(name)s] [%(funcName)s:%(lineno)d] - %(message)s"
+
+# Ensure log folders exist
+def ensure_log_directories():
+    for folder in ["logs/database", "logs/service", "logs/api", "logs/archive"]:
+        os.makedirs(folder, exist_ok=True)
+
+ensure_log_directories()
 
 # Logging Configuration
 LOGGING_CONFIG = {
@@ -27,24 +35,31 @@ LOGGING_CONFIG = {
             "level": "DEBUG"
         },
         "file_database": {
-            "class": "logging.FileHandler",
-            "filename": "logs/database.log",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/database/database.log",
             "formatter": "default",
-            "level": "INFO"
+            "level": "INFO",
+            "maxBytes": 5 * 1024 * 1024,  # 5 MB per file
+            "backupCount": 3               # Keep 3 old log files
         },
         "file_service": {
-            "class": "logging.FileHandler",
-            "filename": "logs/service.log",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/service/service.log",
             "formatter": "default",
-            "level": "INFO"
+            "level": "INFO",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3
         },
         "file_api": {
-            "class": "logging.FileHandler",
-            "filename": "logs/api.log",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/api/api.log",
             "formatter": "default",
-            "level": "INFO"
+            "level": "INFO",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3
         }
     },
+
     "loggers": {
         "database": {
             "handlers": ["console", "file_database"],
@@ -68,11 +83,14 @@ LOGGING_CONFIG = {
     }
 }
 
+# Set logging level based on environment
 environment = os.getenv("ENV", "development")
 
 if environment == "production":
     LOGGING_CONFIG["handlers"]["console"]["level"] = "WARNING"
 
+# Apply logging configuration
 logging.config.dictConfig(LOGGING_CONFIG)
 
+# Log environment status
 logging.getLogger("root").info(f"Logging initialized in '{environment}' mode.")
