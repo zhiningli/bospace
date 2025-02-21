@@ -11,12 +11,12 @@ def create_scripts_table():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_dataset
             FOREIGN KEY (dataset_idx)
-            REFERENCE datasets (dataset_idx)
-            ON DELETE CASCADE;
+            REFERENCES datasets (dataset_idx)
+            ON DELETE CASCADE,
         CONSTRAINT fk_model
             FOREIGN KEY (model_idx)
-            REFERENCE models (model_idx)
-            ON DELETE CASCADE;
+            REFERENCES models (model_idx)
+            ON DELETE CASCADE
     );
     """
     with get_connection() as conn:
