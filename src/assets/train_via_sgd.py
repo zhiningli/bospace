@@ -20,7 +20,7 @@ y_test = y_test.clone().detach().to(device)
 
 
 def train_simple_nn(learning_rate, momentum, weight_decay, num_epochs):
-    model = Model(input_size=100, num_classes=4).to(device)  # Move model to GPU
+    model = Model(input_size={input_size}, num_classes={num_classes}).to(device)  # Move model to GPU
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
 
