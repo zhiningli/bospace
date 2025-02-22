@@ -26,6 +26,7 @@ class BO_Service:
         self._store: ComponentStore = component_store
 
     def optimise(self,
+                code_str: str,
                 search_space: dict[str, list[float]],
                 sample_per_batch: int = 1,
                 n_iter: int = 25, 
@@ -54,17 +55,20 @@ class BO_Service:
                                      len(self.search_space['weight_decay'])-1, 
                                      len(self.search_space['num_epochs'])-1]
                                     ])
+        if code_str:
+            self._store.code_string = code_str
+            self._store.instantiate_code_classes()
 
         if not callable(self._store.objective_func):
             logger.error("Unable to execute the objective function, potentially it is not instantiated by the component store")
             raise ValueError("Unable to execute the objective function, check if it is instantiated using self._store.instantiate_all_classes()")
         try:
-            logging.info("Initial check completed, starting bayesian optimisation")
+            logger.info("Initial check completed, starting bayesian optimisation")
             accuracies, best_y, best_candidate = self._run_bayesian_optimisation(n_iter=n_iter, initial_points = initial_points,sample_per_batch= sample_per_batch)
-            logging.info("Bayesian optimisation completed")
+            logger.info("Bayesian optimisation completed")
             return accuracies, best_y, best_candidate
         except Exception as e:
-            logging.error(f"Bayesian optimisation failed {e}", exc_info=True)
+            logger.error(f"Bayesian optimisation failed {e}", exc_info=True)
             raise RuntimeError(f"Error while running bayesian optimisation {e}")
 
     def _botorch_objective(self, x: torch.Tensor) -> torch.Tensor:
@@ -170,3 +174,4 @@ class BO_Service:
         upper_bounds = bounds[1].to(data.device)
         denormalized = data * (upper_bounds - lower_bounds) + lower_bounds
         return denormalized.to(data.device)
+                                                                                                                                                          
