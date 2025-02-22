@@ -1,21 +1,12 @@
-from src.service.embeddings import Model_Embedder
-from src.database.crud import ModelRepository
-from src.preprocessing.preprocessor import Tokeniser
-import torch
+import joblib
+from dotenv import load_dotenv
+import os
 
-models = ModelRepository.get_all_models()
-preprocessor = Tokeniser()
-embedder = Model_Embedder()
+load_dotenv()
 
-for model in models:
-    model_idx = model.model_idx
-    model_code = model.code
-    tokens = preprocessor(model_code)
-    input_ids = tokens["input_ids"]
-    attention_mask = tokens["attention_mask"]
-    input_ids = torch.tensor([input_ids]) 
-    attention_mask = torch.tensor([attention_mask])
-    feature_vector = embedder.get_embedding(input_ids=input_ids, attention_mask=attention_mask).view(-1).tolist()
+file_path = os.getenv("DATASET_RANK_PREDICTION_MODEL_PATH")
+# Load the model
+model = joblib.load(f"/{file_path}/best_random_forest_model.pkl")
 
-    ModelRepository.update_feature_vector(model_idx=model_idx, feature_vector=feature_vector)
-    print(f"Feature vector for model {model_idx} updated successfully!")
+# Print the model's hyperparameters
+print(model)

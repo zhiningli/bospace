@@ -1,7 +1,7 @@
 import logging
 from src.database.connection import get_connection
 from src.database.object import Similarity
-
+from datetime import datetime
 # Logger setup for database operations
 logger = logging.getLogger("database")
 
@@ -80,6 +80,48 @@ class SimilarityRepository:
         except Exception as e:
             logger.error(f"Failed to retrieve similarities for object_type={object_type}: {e}", exc_info=True)
         return []
+
+
+    @staticmethod
+    def get_results_after_time(object_type: str, created_after: str) -> list[Similarity]:
+        """Retrieve new similarity records created after a given timestamp for a specific object type.
+
+        Args:
+            object_type (str): The type of object ('model' or 'dataset').
+            created_after (str): The timestamp (ISO format) to filter records.
+
+        Returns:
+            list[Similarity]: A list of similarity objects created after the given timestamp.
+        """
+        query = """
+        SELECT *
+        FROM similarities
+        WHERE object_type = %s::similarity_object_enum
+        AND created_at > %s;
+        """
+
+        try:
+            # Validate timestamp format
+            datetime.fromisoformat(created_after)
+
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    logger.debug(f"Fetching similarities for object_type={object_type} created after {created_after}.")
+                    cursor.execute(query, (object_type, created_after))
+                    rows = cursor.fetchall()
+
+                    if rows:
+                        logger.info(f"Retrieved {len(rows)} new similarity records for object_type={object_type} after {created_after}.")
+                        return [Similarity.from_row(row) for row in rows]
+                    else:
+                        logger.warning(f"No new similarities found for object_type={object_type} after {created_after}.")
+        except ValueError:
+            logger.error(f"Invalid timestamp format: {created_after}. Expected ISO format (YYYY-MM-DDTHH:MM:SS).")
+        except Exception as e:
+            logger.error(f"Failed to retrieve new similarities for object_type={object_type} after {created_after}: {e}", exc_info=True)
+        
+        return []
+
 
     @staticmethod
     def delete_similarity(similarity_idx: int) -> bool:
