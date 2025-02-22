@@ -17,7 +17,7 @@ from typing import Callable
 
 logger = logging.getLogger("service")
 
-class BO_Service:
+class BOService:
 
     def __init__(self, component_store: ComponentStore):
         self.objective_func: Callable = None
