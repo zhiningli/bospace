@@ -1,5 +1,5 @@
-from src.service.hyperparameter_evaluation_service import HPEvalutaionService
+from src.service import HPEvaluationService
 
 
-sev = HPEvalutaionService()
+sev = HPEvaluationService()
 sev.run_hp_evaluations_for_all_models()

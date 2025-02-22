@@ -27,7 +27,7 @@ class ScriptRepository:
                         logger.info(f"Successfully created script for dataset_idx={dataset_idx} and model_idx={model_idx}.")
                         return Script.from_row(row)
                     else:
-                        logger.warning(f"⚠️ Failed to create script for dataset_idx={dataset_idx} and model_idx={model_idx}.")
+                        logger.warning(f"Failed to create script for dataset_idx={dataset_idx} and model_idx={model_idx}.")
         except Exception as e:
             logger.error(f"Failed to create script: {e}", exc_info=True)
         return None
@@ -43,7 +43,7 @@ class ScriptRepository:
         try:
             with get_connection() as conn:
                 with conn.cursor() as cursor:
-                    logger.debug(f"🔍 Fetching script with script_idx={script_idx}")
+                    logger.debug(f"Fetching script with script_idx={script_idx}")
                     cursor.execute(query, (script_idx,))
                     row = cursor.fetchone()
 
@@ -72,10 +72,10 @@ class ScriptRepository:
                     script_idx = cursor.fetchone()
 
                     if script_idx:
-                        logger.info(f"✅ Found script_idx={script_idx[0]} for model_idx={model_idx} and dataset_idx={dataset_idx}.")
+                        logger.info(f"Found script_idx={script_idx[0]} for model_idx={model_idx} and dataset_idx={dataset_idx}.")
                         return script_idx[0]
                     else:
-                        logger.warning(f"⚠️ No script found for model_idx={model_idx} and dataset_idx={dataset_idx}.")
+                        logger.warning(f"No script found for model_idx={model_idx} and dataset_idx={dataset_idx}.")
         except Exception as e:
             logger.error(f"Failed to get script ID for model_idx={model_idx} and dataset_idx={dataset_idx}: {e}", exc_info=True)
         return None
@@ -91,7 +91,7 @@ class ScriptRepository:
         try:
             with get_connection() as conn:
                 with conn.cursor() as cursor:
-                    logger.debug(f"🔍 Fetching script for model_idx={model_idx} and dataset_idx={dataset_idx}")
+                    logger.debug(f"Fetching script for model_idx={model_idx} and dataset_idx={dataset_idx}")
                     cursor.execute(query, (model_idx, dataset_idx))
                     row = cursor.fetchone()
 
@@ -99,7 +99,7 @@ class ScriptRepository:
                         logger.info(f"✅ Retrieved script for model_idx={model_idx} and dataset_idx={dataset_idx}.")
                         return Script.from_row(row)
                     else:
-                        logger.warning(f"⚠️ No script found for model_idx={model_idx} and dataset_idx={dataset_idx}.")
+                        logger.warning(f"No script found for model_idx={model_idx} and dataset_idx={dataset_idx}.")
         except Exception as e:
             logger.error(f"Failed to retrieve script for model_idx={model_idx} and dataset_idx={dataset_idx}: {e}", exc_info=True)
         return None
@@ -119,10 +119,10 @@ class ScriptRepository:
                     cursor.execute(query, (script_code, script_idx))
 
                     if cursor.rowcount > 0:
-                        logger.info(f"✅ Successfully updated script code for script_idx={script_idx}.")
+                        logger.info(f"Successfully updated script code for script_idx={script_idx}.")
                         return True
                     else:
-                        logger.warning(f"⚠️ No script found to update for script_idx={script_idx}.")
+                        logger.warning(f"No script found to update for script_idx={script_idx}.")
         except Exception as e:
             logger.error(f"Failed to update script code for script_idx={script_idx}: {e}", exc_info=True)
         return False
@@ -142,10 +142,10 @@ class ScriptRepository:
                     cursor.execute(query, (json.dumps(sgd_config), script_idx))
 
                     if cursor.rowcount > 0:
-                        logger.info(f"✅ Successfully updated SGD config for script_idx={script_idx}.")
+                        logger.info(f"Successfully updated SGD config for script_idx={script_idx}.")
                         return True
                     else:
-                        logger.warning(f"⚠️ No script found to update for script_idx={script_idx}.")
+                        logger.warning(f"No script found to update for script_idx={script_idx}.")
         except Exception as e:
             logger.error(f"Failed to update SGD config for script_idx={script_idx}: {e}", exc_info=True)
         return False

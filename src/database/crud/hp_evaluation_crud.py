@@ -29,6 +29,7 @@ class HPEvaluationRepository:
                         return HP_evaluation.from_row(row)
                     else:
                         logger.warning(f"No HP evaluation created for model_idx={model_idx}, dataset_idx={dataset_idx}.")
+                        return 
         except Exception as e:
             logger.error(f"Failed to create HP evaluation: {e}", exc_info=True)
         return None

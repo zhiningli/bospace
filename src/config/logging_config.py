@@ -1,7 +1,6 @@
 import os
 import logging
 import logging.config
-from logging.handlers import RotatingFileHandler
 
 # Log format
 LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(name)s] [%(funcName)s:%(lineno)d] - %(message)s"
@@ -41,7 +40,7 @@ LOGGING_CONFIG = {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": "logs/service/service.log",
             "formatter": "default",
-            "level": "INFO",
+            "level": "DEBUG",
             "maxBytes": 5 * 1024 * 1024,
             "backupCount": 3
         },
@@ -79,7 +78,7 @@ LOGGING_CONFIG = {
             "propagate": False
         },
         "test": {
-            "handlers": ["console", "file_test"],  # Test-specific logger
+            "handlers": ["console", "file_test"], 
             "level": "DEBUG",
             "propagate": False
         }

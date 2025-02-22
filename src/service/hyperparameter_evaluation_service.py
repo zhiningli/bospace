@@ -22,7 +22,7 @@ class HPEvaluationService:
         logger.debug("Instantiating HPEvaluationService")
 
         self.model_benchmarks_index = [3, 5, 20, 1, 77, 99, 53, 30, 32, 38, 41, 10]
-        self.dataset_benchmarks_index = [4, 9, 12, 17, 20, 24, 34, 40, 44, 98]
+        self.dataset_benchmarks_index = [4, 9, 12, 17, 20, 24, 34, 40, 44, 48]
         self.manual_seed = 42
         self.search_space = {
             "learning_rate": np.logspace(-5, -1, num=50).tolist(),
@@ -37,7 +37,7 @@ class HPEvaluationService:
 
     def _generate_hp_samples(self) -> np.ndarray:
         """Generate Sobol hyperparameter samples."""
-        logger.debug("🎲 Generating hyperparameter samples using Sobol sequence")
+        logger.debug("Generating hyperparameter samples using Sobol sequence")
         try:
             bounds = [
                 [0, len(self.search_space["learning_rate"]) - 1],
@@ -58,7 +58,7 @@ class HPEvaluationService:
     def run_hp_evaluations_for_all_models(self):
         """Evaluate all models against benchmark datasets."""
         logger.info("Starting hyperparameter evaluations for all models.")
-        dataset_benchmarks = DatasetRepository.get_all_dataset()
+        dataset_benchmarks = [DatasetRepository.get_dataset(dataset_idx=dataset_idx) for dataset_idx in self.dataset_benchmarks_index]
         models = ModelRepository.get_all_models()
 
         for dataset_benchmark in dataset_benchmarks:
@@ -112,19 +112,19 @@ class HPEvaluationService:
                         ScriptRepository.update_script_code(
                             script_idx=script.script_idx,
                             script_code=current_code_str,
-                        )
+                    )
 
                     logger.info(f"Successfully evaluated model {model_idx} with dataset {dataset_idx}.")
 
                 except Exception as e:
                     logger.error(f"Failed to evaluate model {model_idx} with dataset {dataset_idx}: {e}")
 
-        logger.info("🎉 Completed hyperparameter evaluations for all models.")
+        logger.info("Completed hyperparameter evaluations for all models.")
 
     def run_hp_evaluations_for_all_datasets(self):
         """Evaluate all datasets against benchmark models."""
         logger.info("Starting hyperparameter evaluations for all datasets.")
-        model_benchmarks = ModelRepository.get_all_models()
+        model_benchmarks = [ModelRepository.get_model(model_idx=model_idx) for model_idx in self.model_benchmarks_index]
         datasets = DatasetRepository.get_all_dataset()
 
         for model_benchmark in model_benchmarks:
