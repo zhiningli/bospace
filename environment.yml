@@ -17,6 +17,7 @@ dependencies:
   - python-dotenv
   - psycopg2
   - xgboost
+  - pytest
   - pip: 
       - gpytorch
       - botorch
