@@ -1,8 +1,3 @@
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
-
 import os
 import logging
 import logging.config
@@ -13,7 +8,7 @@ LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(name)s] [%(funcName)s:%(lineno)d]
 
 # Ensure log folders exist
 def ensure_log_directories():
-    for folder in ["logs/database", "logs/service", "logs/api", "logs/archive"]:
+    for folder in ["logs/database", "logs/service", "logs/api", "logs/test", "logs/archive"]:
         os.makedirs(folder, exist_ok=True)
 
 ensure_log_directories()
@@ -39,8 +34,8 @@ LOGGING_CONFIG = {
             "filename": "logs/database/database.log",
             "formatter": "default",
             "level": "INFO",
-            "maxBytes": 5 * 1024 * 1024,  # 5 MB per file
-            "backupCount": 3               # Keep 3 old log files
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3
         },
         "file_service": {
             "class": "logging.handlers.RotatingFileHandler",
@@ -57,9 +52,16 @@ LOGGING_CONFIG = {
             "level": "INFO",
             "maxBytes": 5 * 1024 * 1024,
             "backupCount": 3
+        },
+        "file_test": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/test/test.log",  
+            "formatter": "default",
+            "level": "DEBUG",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3
         }
     },
-
     "loggers": {
         "database": {
             "handlers": ["console", "file_database"],
@@ -74,6 +76,11 @@ LOGGING_CONFIG = {
         "api": {
             "handlers": ["console", "file_api"],
             "level": "INFO",
+            "propagate": False
+        },
+        "test": {
+            "handlers": ["console", "file_test"],  # Test-specific logger
+            "level": "DEBUG",
             "propagate": False
         }
     },
