@@ -1,12 +1,9 @@
 from src.database.object import Dataset, DatasetCode, DatasetMetaFeature
 from src.database.crud import DatasetRepository
-import logging
 
-logger = logging.getLogger("database")
 def test_create_dataset(db_transaction):
     
     meta_features = [0.1, 0.2, 0.3]
-    print("meta_features", meta_features)
     dataset = DatasetRepository.create_dataset(
         code = "test_code_001",
         input_size = 100,

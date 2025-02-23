@@ -7,18 +7,9 @@ from src.database.connection import get_connection
 # Set up test-specific logger
 test_logger = logging.getLogger("test")
 
-
 load_dotenv()
 
 SQL_SCRIPTS_DIR = os.getenv("SQL_SCRIPTS_DIR")
-
-# Ensure environment variables are loaded before tests
-@pytest.fixture(scope="session", autouse=True)
-def load_env():
-    env = os.getenv("ENV", "dev").lower()
-    if env not in ["dev", "test"]:
-        raise ValueError(f"Invalid ENV value: {env}. Expected 'dev' or 'test'.")
-    logging.info(f"Running tests in '{env}' environment.")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -64,7 +55,6 @@ def setup_test_db():
 
     yield  # Run the tests
 
-    # Drop tables after all tests
     with get_connection() as conn:
         cursor = conn.cursor()
         try:
@@ -101,10 +91,10 @@ def db_transaction():
             raise
         finally:
             if not conn.closed:
-                conn.rollback()  # Ensure rollback if no exception occurs
+                conn.rollback() 
                 with conn.cursor() as cursor:
                     cursor.execute("TRUNCATE datasets RESTART IDENTITY CASCADE;")
-                conn.commit()  # Ensure the truncation is applied
-                test_logger.debug("✅ Test transaction rolled back and tables truncated.")
+                conn.commit()  
+                test_logger.debug("Test transaction rolled back and tables truncated.")
             else:
                 test_logger.warning("Connection was already closed!")

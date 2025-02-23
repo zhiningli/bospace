@@ -9,26 +9,26 @@ class ModelRepository:
     """CRUD operations for the 'models' table using the Model dataclass"""
 
     @staticmethod
-    def create_model(model_idx: int, code: str, feature_vector: list[float] = None) -> Model | None:
+    def create_model(code: str, feature_vector: list[float] = None) -> Model | None:
         """Create a new model record in the database."""
         query = """
-        INSERT INTO models (model_idx, code, feature_vector)
-        VALUES (%s, %s, %s)
+        INSERT INTO models (code, feature_vector)
+        VALUES (%s, %s)
         ON CONFLICT (model_idx) DO NOTHING
         RETURNING model_idx, code, feature_vector, created_at;
         """
         try:
             with get_connection() as conn:
                 with conn.cursor() as cursor:
-                    logger.debug(f"Creating model: model_idx={model_idx}, code={code}, feature_vector={feature_vector}")
-                    cursor.execute(query, (model_idx, code, feature_vector))
+                    logger.debug(f"Creating model:code={code}, feature_vector={feature_vector}")
+                    cursor.execute(query, (code, feature_vector))
                     row = cursor.fetchone()
 
                     if row:
-                        logger.info(f"Model created successfully: model_idx={model_idx}")
+                        logger.info(f"Model created successfully")
                         return Model.from_row(row)
                     else:
-                        logger.warning(f"Model already exists or could not be created: model_idx={model_idx}")
+                        logger.warning(f"Model already exists or could not be created")
         except Exception as e:
             logger.error(f"Failed to create model: {e}", exc_info=True)
         return None
@@ -74,7 +74,7 @@ class ModelRepository:
 
                     if row:
                         logger.info(f"Model with code retrieved successfully: model_idx={model_idx}")
-                        return Model.from_row(row)
+                        return ModelCode.from_row(row)
                     else:
                         logger.warning(f"No model found with model_idx={model_idx}")
         except Exception as e:
