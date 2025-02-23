@@ -11,7 +11,7 @@ from scipy.stats import spearmanr
 
 import logging
 from datetime import datetime
-from sklearn.ensemble import RandomForestRegressor
+from src.model import DatasetSimilarityModel, ModelSimilarityModel
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 
@@ -130,8 +130,8 @@ class SimilarityTrainingService:
 
     def training_RFRegressor_for_dataset_rank_prediction(self):
         model_path = os.getenv("DATASET_RANK_PREDICTION_MODEL_PATH", "./")
-        model_file = os.path.join(model_path, "best_random_forest_model.pkl")
-        metadata_file = os.path.join(model_path, "random_forest_model_metadata.json")
+        model_file = os.path.join(model_path, "dataset_similarity_model.pkl")
+        metadata_file = os.path.join(model_path, "dataset_similarity_model_metadata.json")
 
         # Load metadata if available
         if os.path.exists(metadata_file):
@@ -139,28 +139,19 @@ class SimilarityTrainingService:
                 with open(metadata_file, "r") as meta_file:
                     metadata = json.load(meta_file)
                     last_trained_at = datetime.fromisoformat(metadata.get("last_trained_at", datetime.min.isoformat()))
-                    hyperparameters = metadata.get("hyperparameters", {})
                 logger.info(f"Metadata loaded. Last trained at: {last_trained_at}")
             except (json.JSONDecodeError, KeyError, ValueError):
                 logger.warning(" Failed to parse metadata. Using defaults.")
                 last_trained_at = datetime.min
-                hyperparameters = {}
         else:
             last_trained_at = datetime.min
-            hyperparameters = {}
 
         # Load existing model or create a new one
         if os.path.exists(model_file):
             model = joblib.load(model_file)
             logger.info("Loaded existing RandomForest model.")
         else:
-            model = RandomForestRegressor(
-                n_estimators=hyperparameters.get("n_estimators", 200),
-                max_depth=hyperparameters.get("max_depth", 20),
-                min_samples_split=hyperparameters.get("min_samples_split", 2),
-                min_samples_leaf=hyperparameters.get("min_samples_leaf", 1),
-                random_state=42
-            )
+            model = DatasetSimilarityModel()
             logger.warning("No existing model found. Created a new RandomForest model.")
 
         # Fetch new data created after the last trained timestamp
@@ -185,19 +176,15 @@ class SimilarityTrainingService:
         X = np.array(X)
         y = np.array(y)
 
-        # Split data into training and test sets
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        # Train the model
         model.fit(X_train, y_train)
         logger.info(f"Model trained successfully on {len(X_train)} samples.")
 
-        # Evaluate the model
         y_pred = model.predict(X_test)
         mse = mean_squared_error(y_test, y_pred)
         logger.info(f"Model evaluation complete. Mean Squared Error: {mse:.4f}")
 
-        # Save the model and metadata
         os.makedirs(model_path, exist_ok=True)
         joblib.dump(model, model_file)
         logger.info(f"Model saved to {model_file}")
@@ -206,12 +193,7 @@ class SimilarityTrainingService:
         metadata = {
             "last_trained_at": datetime.now().isoformat(),
             "model_type": "RandomForestRegressor",
-            "hyperparameters": {
-                "n_estimators": model.n_estimators,
-                "max_depth": model.max_depth,
-                "min_samples_split": model.min_samples_split,
-                "min_samples_leaf": model.min_samples_leaf
-            },
+            "hyperparameters": model.get_params(),
             "performance": {"mse": mse}
         }
 
@@ -223,48 +205,24 @@ class SimilarityTrainingService:
 
 
     def training_XGBoost_for_model_rank_prediction(self):
-        """Training the XGBoost model for model rank prediction."""
+        """Train the XGBoost model for model rank prediction."""
         model_path = os.getenv("MODEL_RANK_PREDICTION_MODEL_PATH", "./")
-        model_file = os.path.join(model_path, "best_XGBoost_model.json")
-        metadata_file = os.path.join(model_path, "best_XGBoost_model_metadata.json")
+        model_file = os.path.join(model_path, "model_similarity_model.json")
+        metadata_file = os.path.join(model_path, "model_similarity_model_metadata.json")
 
-        # Check if model and metadata exist
+        model = ModelSimilarityModel()
+        last_trained_at = datetime.min
+
         if os.path.exists(model_file) and os.path.exists(metadata_file):
-            # Load existing model
-            model = xgb.Booster()
-            model.load_model(model_file)
-
-            # Load metadata
             try:
+                model.load_model(model_file)
                 with open(metadata_file, "r") as meta_file:
                     metadata = json.load(meta_file)
-                    last_trained_at = datetime.fromisoformat(metadata['last_trained_at'])
-                    hyperparameters = metadata['hyperparameters']
-            except (json.JSONDecodeError, KeyError):
-                logger.error("Failed to parse metadata file. Training from scratch.")
-                last_trained_at = datetime.min
-                hyperparameters = {
-                    "objective": "reg:squarederror",
-                    "eval_metric": "rmse",
-                    "max_depth": 6,
-                    "learning_rate": 0.1,
-                    "n_estimators": 100,
-                    "num_boost_round": 100
-                }
-        else:
-            # Train from scratch
-            logger.info("No existing model found. Training from scratch.")
-            model = None
-            last_trained_at = datetime.min
-            hyperparameters = {
-                "objective": "reg:squarederror",
-                "eval_metric": "rmse",
-                "max_depth": 6,
-                "learning_rate": 0.1,
-                "n_estimators": 100,
-                "num_boost_round": 100
-            }
-
+                    last_trained_at = datetime.fromisoformat(metadata.get("last_trained_at", str(datetime.min)))
+                    logger.info(f"Loaded existing model trained at: {last_trained_at}.")
+            except (json.JSONDecodeError, FileNotFoundError, KeyError):
+                logger.warning("Failed to load existing model or metadata. Training from scratch.")
+        
         # Fetch new data since the last training
         new_data = SimilarityRepository.get_results_after_time(object_type="model", created_after=last_trained_at)
 
@@ -272,9 +230,8 @@ class SimilarityTrainingService:
             logger.info("No new dataset similarity found for training XGBoost. Skipping training.")
             return
 
+        # Prepare training data
         X, y = [], []
-
-        # Prepare features and labels
         for record in new_data:
             if record.object_1 and record.object_2 and record.similarity is not None:
                 X.append(record.object_1 + record.object_2)
@@ -287,40 +244,31 @@ class SimilarityTrainingService:
         X = np.array(X)
         y = np.array(y)
 
-        # Split into train and test sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Train model and evaluate
+        try:
+            rmse = model.train(X, y, test_size=0.2)
+            logger.info(f"Training completed. RMSE: {rmse:.4f}")
+        except Exception as e:
+            logger.error(f"Model training failed: {e}")
+            return
 
-        # Train the model
-        dtrain = xgb.DMatrix(X_train, label=y_train)
-        dtest = xgb.DMatrix(X_test, label=y_test)
-
-        model = xgb.train(hyperparameters, dtrain, num_boost_round=hyperparameters['num_boost_round'])
-
-        logger.info(f"XGBoost model successfully trained on {len(X_train)} samples.")
-
-        # Evaluate model performance
-        predictions = model.predict(dtest)
-        rmse = np.sqrt(np.mean((predictions - y_test) ** 2))
-        logger.info(f"Model RMSE on test set: {rmse:.4f}")
-
-        # Save the model and metadata
+        # Save model and metadata
         os.makedirs(model_path, exist_ok=True)
         model.save_model(model_file)
 
         metadata = {
             "last_trained_at": datetime.now().isoformat(),
             "model_type": "XGBoost",
-            "hyperparameters": hyperparameters,
-            "num_boost_round": hyperparameters['num_boost_round']
+            "hyperparameters": model.get_params()
         }
 
-        # Write metadata file
-        with open(metadata_file, "w") as meta_file:
-            json.dump(metadata, meta_file, indent=4)
+        try:
+            with open(metadata_file, "w") as meta_file:
+                json.dump(metadata, meta_file, indent=4)
+            logger.info(f"Model and metadata saved successfully. Last trained at: {metadata['last_trained_at']}.")
+        except Exception as e:
+            logger.error(f"Failed to save metadata: {e}")
 
-        logger.info(f"Model and metadata saved. Last trained at: {metadata['last_trained_at']}.")
-
-            
 
 
     def _spearman_rank_correlation(self, d1_scores: list | np.ndarray, d2_scores: list | np.ndarray) -> float:
