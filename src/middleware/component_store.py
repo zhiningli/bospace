@@ -66,11 +66,6 @@ class ComponentStore:
         if not callable(self.objective_func):
             raise ValueError("No valid objective function named 'train_simple_nn' detechted")
 
-        # Extracting the model class
-        self.model_instance = self.namespace.get("Model")
-        if not self.model_instance or not issubclass(self.model_instance, torch.nn.Module):
-            raise ValueError("No valid model class named 'Model' found")
-
         # Extracting the dataset object
         self.dataset_instance = self.namespace.get("numpy_dataset")
         if self.dataset_instance is None or not isinstance(self.dataset_instance, (torch.utils.data.Dataset, np.ndarray)):

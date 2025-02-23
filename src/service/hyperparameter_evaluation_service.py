@@ -9,6 +9,7 @@ from src.database.crud import DatasetRepository
 from src.database.crud import HPEvaluationRepository
 from src.database.crud import ScriptRepository
 from src.middleware.component_store import ComponentStore
+from src.assets.search_space import sgd_search_space
 from src.assets.train_via_sgd import code_str
 import numpy as np
 import logging
@@ -24,12 +25,7 @@ class HPEvaluationService:
         self.model_benchmarks_index = [3, 5, 20, 1, 77, 99, 53, 30, 32, 38, 41, 10]
         self.dataset_benchmarks_index = [4, 9, 12, 17, 20, 24, 34, 40, 44, 48]
         self.manual_seed = 42
-        self.search_space = {
-            "learning_rate": np.logspace(-5, -1, num=50).tolist(),
-            "momentum": [0.01 * x for x in range(100)],
-            "weight_decay": [0.0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
-            "num_epochs": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90],
-        }
+        self.search_space = sgd_search_space
         self.store = ComponentStore()
         self.samples = self._generate_hp_samples()
 
