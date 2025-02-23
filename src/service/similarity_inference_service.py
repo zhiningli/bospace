@@ -69,7 +69,7 @@ class SimilarityInferenceService:
         target_model_embedding = self.model_embedder.get_embedding(model_source_code)
 
         # Can be optimised in futher to only fetch index and embeddings
-        models = ModelRepository.get_all_models()
+        models = ModelRepository.get_all_models_with_feature_vector_only()
 
         for model_object in models:
             source_model_idx = model_object.model_idx

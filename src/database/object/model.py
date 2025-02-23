@@ -27,3 +27,41 @@ class Model:
             feature_vector = row[2],
             created_at = row[3],
         )
+    
+@dataclass
+class ModelFeatureVector:
+    """dataclass representing parital columns, only model_idx, feature_vector"""
+    model_idx: int | None = None
+    feature_vector: list[float] | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "model_idx": self.model_idx,
+            "feature_vector": self.feature_vector
+        }
+    
+    @classmethod
+    def from_row(cls, row:tuple):
+        return cls(
+            model_idx = row[0],
+            feature_vector = row[1]
+        )
+    
+@dataclass
+class ModelCode:
+    """dataclass representing parital columns, only model_idx, code"""
+    model_idx: int | None = None
+    code: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "model_idx": self.model_idx,
+            "code": self.code
+        }
+    
+    @classmethod
+    def from_row(cls, row:tuple):
+        return cls(
+            model_idx = row[0],
+            code = row[1]
+        )

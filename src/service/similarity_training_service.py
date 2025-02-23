@@ -78,7 +78,7 @@ class SimilarityTrainingService:
                         logger.debug(f"Created similarity for datasets: {idx1} <-> {idx2}")
 
             # Prepare rank data by computing the Spearman rank correlation for models
-            models = ModelRepository.get_all_models()
+            models = ModelRepository.get_all_models_with_feature_vector_only()
             models_hpo_performances = HPEvaluationRepository.get_average_accuracy_per_JSON_array_index_group_by_model()
 
             logger.debug(f"Retrieved {len(models)} models and {len(models_hpo_performances)} model HPO performances.")
@@ -218,7 +218,7 @@ class SimilarityTrainingService:
         # Write metadata file
         with open(metadata_file, "w") as meta_file:
             json.dump(metadata, meta_file, indent=4)
-        logger.info(f"✅ Metadata updated and saved to {metadata_file}.")
+        logger.info(f"Metadata updated and saved to {metadata_file}.")
 
 
 
