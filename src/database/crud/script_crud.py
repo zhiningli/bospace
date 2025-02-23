@@ -127,47 +127,47 @@ class ScriptRepository:
             logger.error(f"Failed to update script code for script_idx={script_idx}: {e}", exc_info=True)
         return False
 
-    @staticmethod
-    def update_script_sgd_config(script_idx: int, sgd_config: dict) -> bool:
-        """Update the SGD configuration for a script."""
-        query = """
-        UPDATE scripts
-        SET sgd_best_performing_configuration = %s
-        WHERE script_idx = %s;
-        """
-        try:
-            with get_connection() as conn:
-                with conn.cursor() as cursor:
-                    logger.debug(f"🛠️ Updating SGD config for script_idx={script_idx}")
-                    cursor.execute(query, (json.dumps(sgd_config), script_idx))
+    # @staticmethod
+    # def update_script_sgd_config(script_idx: int, sgd_config: dict) -> bool:
+    #     """Update the SGD configuration for a script."""
+    #     query = """
+    #     UPDATE scripts
+    #     SET sgd_best_performing_configuration = %s
+    #     WHERE script_idx = %s;
+    #     """
+    #     try:
+    #         with get_connection() as conn:
+    #             with conn.cursor() as cursor:
+    #                 logger.debug(f"🛠️ Updating SGD config for script_idx={script_idx}")
+    #                 cursor.execute(query, (json.dumps(sgd_config), script_idx))
 
-                    if cursor.rowcount > 0:
-                        logger.info(f"Successfully updated SGD config for script_idx={script_idx}.")
-                        return True
-                    else:
-                        logger.warning(f"No script found to update for script_idx={script_idx}.")
-        except Exception as e:
-            logger.error(f"Failed to update SGD config for script_idx={script_idx}: {e}", exc_info=True)
-        return False
+    #                 if cursor.rowcount > 0:
+    #                     logger.info(f"Successfully updated SGD config for script_idx={script_idx}.")
+    #                     return True
+    #                 else:
+    #                     logger.warning(f"No script found to update for script_idx={script_idx}.")
+    #     except Exception as e:
+    #         logger.error(f"Failed to update SGD config for script_idx={script_idx}: {e}", exc_info=True)
+    #     return False
 
-    @staticmethod
-    def delete_script(script_idx: int) -> bool:
-        """Delete a script by its primary key."""
-        query = """
-        DELETE FROM scripts
-        WHERE script_idx = %s;
-        """
-        try:
-            with get_connection() as conn:
-                with conn.cursor() as cursor:
-                    logger.debug(f"Deleting script with script_idx={script_idx}")
-                    cursor.execute(query, (script_idx,))
+    # @staticmethod
+    # def delete_script(script_idx: int) -> bool:
+    #     """Delete a script by its primary key."""
+    #     query = """
+    #     DELETE FROM scripts
+    #     WHERE script_idx = %s;
+    #     """
+    #     try:
+    #         with get_connection() as conn:
+    #             with conn.cursor() as cursor:
+    #                 logger.debug(f"Deleting script with script_idx={script_idx}")
+    #                 cursor.execute(query, (script_idx,))
 
-                    if cursor.rowcount > 0:
-                        logger.info(f"Successfully deleted script with script_idx={script_idx}.")
-                        return True
-                    else:
-                        logger.warning(f"No script found to delete with script_idx={script_idx}.")
-        except Exception as e:
-            logger.error(f"Failed to delete script with script_idx={script_idx}: {e}", exc_info=True)
-        return False
+    #                 if cursor.rowcount > 0:
+    #                     logger.info(f"Successfully deleted script with script_idx={script_idx}.")
+    #                     return True
+    #                 else:
+    #                     logger.warning(f"No script found to delete with script_idx={script_idx}.")
+    #     except Exception as e:
+    #         logger.error(f"Failed to delete script with script_idx={script_idx}: {e}", exc_info=True)
+    #     return False
