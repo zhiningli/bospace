@@ -13,7 +13,13 @@ SQL_SCRIPTS_DIR = os.getenv("SQL_SCRIPTS_DIR")
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_test_db():
+def setup_test_db(request):
+
+    if "no_db" in request.node.keywords:
+        test_logger.info("Skipping database setup for no-db tests")
+        yield
+        return
+    
     """Create test tables before running tests and drop afterward."""
     with get_connection() as conn:
         cursor = conn.cursor()
