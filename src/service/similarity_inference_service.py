@@ -85,7 +85,7 @@ class SimilarityInferenceService:
 
         target_meta_features = self.dataset_embedder.extract_meta_features(dataset_instance)
 
-        datasets = DatasetRepository.get_all_dataset()
+        datasets = DatasetRepository.get_all_datasets_with_meta_features()
 
         for dataset_object in datasets:
             source_dataset_idx = dataset_object.dataset_idx

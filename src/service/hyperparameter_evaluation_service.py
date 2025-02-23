@@ -54,7 +54,7 @@ class HPEvaluationService:
     def run_hp_evaluations_for_all_models(self):
         """Evaluate all models against benchmark datasets."""
         logger.info("Starting hyperparameter evaluations for all models.")
-        dataset_benchmarks = [DatasetRepository.get_dataset(dataset_idx=dataset_idx) for dataset_idx in self.dataset_benchmarks_index]
+        dataset_benchmarks = [DatasetRepository.get_dataset_idx_with_code(dataset_idx=dataset_idx) for dataset_idx in self.dataset_benchmarks_index]
         models = ModelRepository.get_all_models_with_code_string_only()
 
         for dataset_benchmark in dataset_benchmarks:
@@ -121,7 +121,7 @@ class HPEvaluationService:
         """Evaluate all datasets against benchmark models."""
         logger.info("Starting hyperparameter evaluations for all datasets.")
         model_benchmarks = [ModelRepository.get_model_with_code(model_idx=model_idx) for model_idx in self.model_benchmarks_index]
-        datasets = DatasetRepository.get_all_dataset()
+        datasets = DatasetRepository.get_all_datasets_with_code()
 
         for model_benchmark in model_benchmarks:
             model_idx = model_benchmark.model_idx

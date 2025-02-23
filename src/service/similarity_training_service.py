@@ -33,7 +33,7 @@ class SimilarityTrainingService:
             logger.info("Starting rank data preparation for datasets and models.")
 
             # Prepare rank data by computing the Spearman rank correlation for datasets
-            datasets = DatasetRepository.get_all_dataset()
+            datasets = DatasetRepository.get_all_datasets_with_meta_features()
             datasets_hpo_performances = HPEvaluationRepository.get_average_accuracy_per_JSON_array_index_group_by_dataset()
 
             logger.debug(f"Retrieved {len(datasets)} datasets and {len(datasets_hpo_performances)} dataset HPO performances.")
