@@ -1,12 +1,17 @@
 from src.database.object import Dataset, DatasetCode, DatasetMetaFeature
 from src.database.crud import DatasetRepository
+import logging
 
+logger = logging.getLogger("database")
 def test_create_dataset(db_transaction):
+    
+    meta_features = [0.1, 0.2, 0.3]
+    print("meta_features", meta_features)
     dataset = DatasetRepository.create_dataset(
         code = "test_code_001",
         input_size = 100,
         num_classes=10,
-        meta_features=[0.1, 0.2, 0.3]
+        meta_features= meta_features
     )
 
     assert dataset is not None
@@ -21,7 +26,8 @@ def test_get_dataset_idx_with_code(db_transaction):
     dataset = DatasetRepository.create_dataset(
         code = "test_code",
         input_size = 100,
-        num_classes =2 
+        num_classes =2,
+        meta_features=[0., 9.0] 
     )
 
     dataset_code = DatasetRepository.get_dataset_idx_with_code(dataset.dataset_idx)

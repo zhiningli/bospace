@@ -16,7 +16,6 @@ class DatasetRepository:
         ON CONFLICT (dataset_idx) DO NOTHING
         RETURNING dataset_idx, code, input_size, num_classes, meta_features, created_at;
         """
-
         try:
             with get_connection() as conn:
                 with conn.cursor() as cursor:

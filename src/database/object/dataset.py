@@ -41,14 +41,14 @@ class DatasetMetaFeature:
 
     def to_dict(self) -> dict:
         return {
-            "model_idx": self.model_idx,
+            "dataset_idx": self.dataset_idx,
             "meta_features": self.meta_features
         }
     
     @classmethod
     def from_row(cls, row:tuple):
         return cls(
-            model_idx = row[0],
+            dataset_idx = row[0],
             meta_features = row[1]
         )
     

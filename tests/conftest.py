@@ -1,14 +1,24 @@
 import pytest
 import logging
 import os
+from dotenv import load_dotenv
 from src.database.connection import get_connection
 
 # Set up test-specific logger
 test_logger = logging.getLogger("test")
 
-# Get the absolute path for SQL scripts
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SQL_SCRIPTS_DIR = os.path.join(BASE_DIR, "../../src/database/raw_sql_migration_scripts")
+
+load_dotenv()
+
+SQL_SCRIPTS_DIR = os.getenv("SQL_SCRIPTS_DIR")
+
+# Ensure environment variables are loaded before tests
+@pytest.fixture(scope="session", autouse=True)
+def load_env():
+    env = os.getenv("ENV", "dev").lower()
+    if env not in ["dev", "test"]:
+        raise ValueError(f"Invalid ENV value: {env}. Expected 'dev' or 'test'.")
+    logging.info(f"Running tests in '{env}' environment.")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -27,10 +37,11 @@ def setup_test_db():
             for script_name in [
                 "create_datasets_table.sql",
                 "create_models_table.sql",
-                "create_hp_evaluation_table.sql",
-                "create_similarity_table.sql",
-                "create_results_table.sql",
+                "create_hp_evaluations_table.sql",
+                "create_similarities_table.sql",
                 "create_scripts_table.sql",
+                "create_results_table.sql",
+
             ]:
                 script_path = os.path.join(SQL_SCRIPTS_DIR, script_name)
                 if not os.path.isfile(script_path):
@@ -58,7 +69,7 @@ def setup_test_db():
         cursor = conn.cursor()
         try:
             test_logger.info("Dropping test database tables...")
-            drop_script_path = os.path.join(SQL_SCRIPTS_DIR, "drop_table.sql")
+            drop_script_path = os.path.join(SQL_SCRIPTS_DIR, "../drop_all_tables.sql")
 
             if not os.path.isfile(drop_script_path):
                 raise FileNotFoundError(f"Drop table script not found: {drop_script_path}")
@@ -84,12 +95,16 @@ def db_transaction():
     with get_connection() as conn:
         conn.autocommit = False
         try:
-            test_logger.debug("Starting DB transaction for test...")
             yield conn  # Provide connection for the test
         except Exception as e:
-            test_logger.error(f"Error during transaction: {e}", exc_info=True)
+            test_logger.error(f"Error during transaction: {e}")
             raise
         finally:
-            test_logger.debug("Rolling back transaction...")
-            conn.rollback()
-            conn.close()
+            if not conn.closed:
+                conn.rollback()  # Ensure rollback if no exception occurs
+                with conn.cursor() as cursor:
+                    cursor.execute("TRUNCATE datasets RESTART IDENTITY CASCADE;")
+                conn.commit()  # Ensure the truncation is applied
+                test_logger.debug("✅ Test transaction rolled back and tables truncated.")
+            else:
+                test_logger.warning("Connection was already closed!")
