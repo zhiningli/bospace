@@ -134,7 +134,6 @@ class HPEvaluationRepository:
         query = """
         SELECT 
             dataset_idx,
-            elem_index,
             ROUND(AVG((elem.value->>'accuracy')::NUMERIC), 4) AS avg_accuracy
         FROM
             hp_evaluations,
@@ -166,7 +165,6 @@ class HPEvaluationRepository:
         query = """
         SELECT 
             model_idx,
-            elem_index,
             ROUND(AVG((elem.value->>'accuracy')::NUMERIC), 4) AS avg_accuracy
         FROM
             hp_evaluations,

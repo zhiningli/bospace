@@ -1,7 +1,7 @@
 """
 This service handles preparation of rank results, training XGBoost model for model rank prediction and training RFRegressor model for dataset rank prediction
 """
-from src.database.crud import DatasetRepository, SimilarityRepository, HPEvaluationRepository, ModelRepository
+from src.database.crud import DatasetRepository, SimilarityRepository, ModelRepository, EvaluationMaterialisedView
 import numpy as np
 import os
 from dotenv import load_dotenv
@@ -34,13 +34,13 @@ class SimilarityTrainingService:
 
             # Prepare rank data by computing the Spearman rank correlation for datasets
             datasets = DatasetRepository.get_all_datasets_with_meta_features()
-            datasets_hpo_performances = HPEvaluationRepository.get_average_accuracy_per_JSON_array_index_group_by_dataset()
-
+            
+            datasets_hpo_performances = EvaluationMaterialisedView.get_evaluations_for_all_dataset()
             logger.debug(f"Retrieved {len(datasets)} datasets and {len(datasets_hpo_performances)} dataset HPO performances.")
 
             performances = defaultdict(list)
             for dataset_performance in datasets_hpo_performances:
-                performances[dataset_performance[0]].append(dataset_performance[1])
+                performances[dataset_performance.dataset_idx].append(dataset_performance.avg_accuracy)
 
             logger.debug(f"Dataset performances aggregated: {len(performances)} dataset entries.")
 
@@ -79,13 +79,13 @@ class SimilarityTrainingService:
 
             # Prepare rank data by computing the Spearman rank correlation for models
             models = ModelRepository.get_all_models_with_feature_vector_only()
-            models_hpo_performances = HPEvaluationRepository.get_average_accuracy_per_JSON_array_index_group_by_model()
+            models_hpo_performances = EvaluationMaterialisedView.get_evaluations_for_all_models()
 
             logger.debug(f"Retrieved {len(models)} models and {len(models_hpo_performances)} model HPO performances.")
 
             performances = defaultdict(list)
             for model_performance in models_hpo_performances:
-                performances[model_performance[0]].append(model_performance[1])
+                performances[model_performance.model_idx].append(model_performance.avg_accuracy)
 
             logger.debug(f"Model performances aggregated: {len(performances)} model entries.")
 
@@ -296,12 +296,12 @@ class SimilarityTrainingService:
 
         model = xgb.train(hyperparameters, dtrain, num_boost_round=hyperparameters['num_boost_round'])
 
-        logger.info(f"✅ XGBoost model successfully trained on {len(X_train)} samples.")
+        logger.info(f"XGBoost model successfully trained on {len(X_train)} samples.")
 
         # Evaluate model performance
         predictions = model.predict(dtest)
         rmse = np.sqrt(np.mean((predictions - y_test) ** 2))
-        logger.info(f"📊 Model RMSE on test set: {rmse:.4f}")
+        logger.info(f"Model RMSE on test set: {rmse:.4f}")
 
         # Save the model and metadata
         os.makedirs(model_path, exist_ok=True)
@@ -318,7 +318,7 @@ class SimilarityTrainingService:
         with open(metadata_file, "w") as meta_file:
             json.dump(metadata, meta_file, indent=4)
 
-        logger.info(f"✅ Model and metadata saved. Last trained at: {metadata['last_trained_at']}.")
+        logger.info(f"Model and metadata saved. Last trained at: {metadata['last_trained_at']}.")
 
             
 
