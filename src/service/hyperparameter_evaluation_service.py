@@ -4,10 +4,7 @@ This information is crucial for evaluating the rank correlation between two data
 Results for saved to the HPO-evaluation table.
 """
 
-from src.database.crud import ModelRepository
-from src.database.crud import DatasetRepository
-from src.database.crud import HPEvaluationRepository
-from src.database.crud import ScriptRepository
+from src.database.crud import ModelRepository, DatasetRepository, HPEvaluationRepository, ScriptRepository, EvaluationMaterialisedView
 from src.middleware.component_store import ComponentStore
 from src.assets.search_space import sgd_search_space
 from src.assets.train_via_sgd import code_str
@@ -111,7 +108,7 @@ class HPEvaluationService:
                     )
 
                     logger.info(f"Successfully evaluated model {model_idx} with dataset {dataset_idx}.")
-
+                    EvaluationMaterialisedView.refresh_materialized_view()
                 except Exception as e:
                     logger.error(f"Failed to evaluate model {model_idx} with dataset {dataset_idx}: {e}")
 
@@ -177,7 +174,7 @@ class HPEvaluationService:
                         )
 
                     logger.info(f"Successfully evaluated dataset {dataset_idx} with model {model_idx}.")
-
+                    EvaluationMaterialisedView.refresh_materialized_view()
                 except Exception as e:
                     logger.error(f"Failed to evaluate dataset {dataset_idx} with model {model_idx}: {e}")
 
