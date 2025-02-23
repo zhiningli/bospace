@@ -1,5 +1,4 @@
 from src.middleware import ComponentStore
-from src.preprocessing import Tokeniser
 from src.service.embeddings import Model_Embedder, Dataset_Embedder
 from src.database.crud import ModelRepository, DatasetRepository, ScriptRepository
 from src.utils import extract_model_source_code
@@ -13,7 +12,7 @@ class SimilarityInferenceService:
         self.dataset_embedder = Dataset_Embedder()
         self.search_space = sgd_search_space
         
-    def suggest_search_space(self, code_str: str) -> dict[str, dict[str, float]]:
+    def suggest_search_space(self, code_str: str, num_similar_model: int = 5, num_similar_dataset: int = 5) -> dict[str, dict[str, float]]:
         
 
         self.store.code_string = code_str
@@ -22,8 +21,8 @@ class SimilarityInferenceService:
         model_source_code = extract_model_source_code(code_str)
         dataset_instance = self.store.dataset_instance
 
-        top_k_similar_models = self.compute_top_k_model_similarities(model_source_code)
-        top_k_similar_datasets = self.compute_top_k_dataset_similarities(dataset_instance=dataset_instance)
+        top_k_similar_models = self.compute_top_k_model_similarities(model_source_code, k=num_similar_model)
+        top_k_similar_datasets = self.compute_top_k_dataset_similarities(dataset_instance=dataset_instance, k =num_similar_model)
 
         result = {
             "lower_bound": {
@@ -64,28 +63,25 @@ class SimilarityInferenceService:
 
         return result
 
-    def compute_top_k_model_similarities(self, model_source_code):
+    def compute_top_k_model_similarities(self, model_source_code, k):
         res = []
-        tokeniser = Tokeniser()
-        tokens = tokeniser(model_source_code)
-        input_ids = tokens["input_ids"]
-        attention_mask = tokens["attention_mask"]
         
-        target_model_embedding = self.model_embedder.get_embedding(input_ids=input_ids, attention_mask=attention_mask)
+        target_model_embedding = self.model_embedder.get_embedding(model_source_code)
 
         # Can be optimised in futher to only fetch index and embeddings
         models = ModelRepository.get_all_models()
 
         for model_object in models:
             source_model_idx = model_object.model_idx
-            source_model_embeddings = model_object.feature_vector
+            source_model_embedding = model_object.feature_vector
 
             # TODO, load the XGBoost model for infering an similarity score
             break
 
         pass
 
-    def compute_top_k_dataset_similarities(self, dataset_instance):
+    def compute_top_k_dataset_similarities(self, dataset_instance, k):
+        res = []
 
         target_meta_features = self.dataset_embedder.extract_meta_features(dataset_instance)
 
