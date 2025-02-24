@@ -1,5 +1,5 @@
 from src.config.celery_config import celery_app
-from service.bo_service import BOService
+
 import logging
 
 logger = logging.getLogger("service")
@@ -9,6 +9,7 @@ def run_bo_task(self, code_string, search_space, n_initial_points, n_iter, allow
     """Background task for Bayesian Optimisation"""
     try:
         logger.info("Starting Bayesian Optimisation task.")
+        from src.service import BOService
         bo_service = BOService()
         accuracies, best_y, best_candidate = bo_service.optimise(
             code_str = code_string,

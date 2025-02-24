@@ -16,7 +16,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 
-import xgboost as xgb
 import json
 
 logger = logging.getLogger("service")
@@ -37,6 +36,7 @@ class SimilarityTrainingService:
             datasets = DatasetRepository.get_all_datasets_with_meta_features()
             
             datasets_hpo_performances = EvaluationMaterialisedView.get_evaluations_for_all_dataset()
+            print(len(datasets_hpo_performances))
             logger.debug(f"Retrieved {len(datasets)} datasets and {len(datasets_hpo_performances)} dataset HPO performances.")
 
             performances = defaultdict(list)
@@ -61,10 +61,13 @@ class SimilarityTrainingService:
                     # Retrieve performances and calculate rank score
                     one_dataset_performance = performances[one_dataset_idx]
                     another_dataset_performance = performances[another_dataset_idx]
-
                     rank_score = self._spearman_rank_correlation(one_dataset_performance, another_dataset_performance)
-                    logger.info(f"Calculated Spearman rank score: {rank_score:.4f} for datasets {one_dataset_idx} and {another_dataset_idx}.")
-
+                    if np.isnan(rank_score):
+                        logger.warning("spearman rank 0 detected, indicating a constant performance regardless of hyperparameters, indicating problematic data entry! Discarded")
+                        continue
+        
+                    print(f"Calculated Spearman rank score: {rank_score:.4f} for datasets {one_dataset_idx} and {another_dataset_idx}.") 
+                    logger.info(f"Calculated Spearman rank score: {rank_score:.4f} for datasets {one_dataset_idx} and {another_dataset_idx}.")                 
                     # Create similarity entries (bidirectional)
                     for obj1, obj2, idx1, idx2 in [
                         (one_dataset_meta_features, another_dataset_meta_features, one_dataset_idx, another_dataset_idx),
@@ -72,12 +75,12 @@ class SimilarityTrainingService:
                     ]:
                         SimilarityRepository.create_similarity(
                             object_type="dataset",
-                            object_1=obj1, object_1_idx=idx1,
-                            object_2=obj2, object_2_idx=idx2,
+                            object_1_idx=idx1, object_1_feature=obj1, 
+                            object_2_idx=idx2, object_2_feature=obj2, 
                             similarity=rank_score
                         )
                         logger.debug(f"Created similarity for datasets: {idx1} <-> {idx2}")
-
+                
             # Prepare rank data by computing the Spearman rank correlation for models
             models = ModelRepository.get_all_models_with_feature_vector_only()
             models_hpo_performances = EvaluationMaterialisedView.get_evaluations_for_all_models()
@@ -87,7 +90,6 @@ class SimilarityTrainingService:
             performances = defaultdict(list)
             for model_performance in models_hpo_performances:
                 performances[model_performance.model_idx].append(model_performance.avg_accuracy)
-
             logger.debug(f"Model performances aggregated: {len(performances)} model entries.")
 
             for one_model in models:
@@ -108,8 +110,10 @@ class SimilarityTrainingService:
                     another_model_performance = performances[another_model_idx]
 
                     rank_score = self._spearman_rank_correlation(one_model_performance, another_model_performance)
+                    if rank_score == float("nan"):
+                        logger.warning("spearman rank 0 detected, indicating a constant performance regardless of hyperparameters, indicating problematic data entry! Discarded")
+                        continue
                     logger.info(f"Calculated Spearman rank score: {rank_score:.4f} for models {one_model_idx} and {another_model_idx}.")
-
                     # Create similarity entries (bidirectional)
                     for obj1, obj2, idx1, idx2 in [
                         (one_model_feature_vector, another_model_feature_vector, one_model_idx, another_model_idx),
@@ -117,8 +121,8 @@ class SimilarityTrainingService:
                     ]:
                         SimilarityRepository.create_similarity(
                             object_type="model",
-                            object_1=obj1, object_1_idx=idx1,
-                            object_2=obj2, object_2_idx=idx2,
+                            object_1_idx=idx1, object_1_feature=obj1, 
+                            object_2_idx=idx2, object_2_feature=obj2, 
                             similarity=rank_score
                         )
                         logger.debug(f"Created similarity for models: {idx1} <-> {idx2}")
@@ -271,33 +275,26 @@ class SimilarityTrainingService:
             logger.error(f"Failed to save metadata: {e}")
 
 
-
     def _spearman_rank_correlation(self, d1_scores: list | np.ndarray, d2_scores: list | np.ndarray) -> float:
         """
         Compute Spearman's rank correlation coefficient between two sets of scores.
-        Spearman's correlation is invariant to the input order and measures 
-        the strength and direction of the monotonic relationship between two variables.
-
-        Args:
-            d1_scores (list | np.ndarray): First set of scores.
-            d2_scores (list | np.ndarray): Second set of scores.
-
-        Returns:
-            float: Spearman's rank correlation coefficient, ranging from -1 to 1.
         """
-
-        # Convert inputs to numpy arrays
-        d1_scores = np.array(d1_scores)
-        d2_scores = np.array(d2_scores)
+    
+        # Convert to 1D numpy arrays
+        d1_scores = np.ravel(np.array(d1_scores))
+        d2_scores = np.ravel(np.array(d2_scores))
 
         # Ensure the lengths match
         if len(d1_scores) != len(d2_scores):
             raise ValueError("The two input lists must have the same length.")
-
+        # Check if either vector is constant
+        if np.std(d1_scores) == 0 and np.std(d2_scores) == 0:
+            return float('nan')  # Both constant: no meaningful correlation
         # Compute Spearman's rank correlation
         correlation, _ = spearmanr(d1_scores, d2_scores)
 
-        return correlation
+        return float(correlation)
+
 
     def _compute_cosine_similarity(self, d1_scores: list | np.ndarray, d2_scores: list | np.ndarray) -> float:
         """
@@ -316,10 +313,8 @@ class SimilarityTrainingService:
         # Convert inputs to numpy arrays and reshape for compatibility
         d1_scores = np.array(d1_scores).reshape(1, -1)
         d2_scores = np.array(d2_scores).reshape(1, -1)
-
-        # Ensure the lengths match
-        if d1_scores.shape[1] != d2_scores.shape[1]:
-            raise ValueError("The two input lists must have the same length.")
+        if np.std(d1_scores) == 0 or np.std(d2_scores) == 0:
+            return float("nan")  # Both constant: no meaningful correlation
 
         # Compute cosine similarity
         similarity = cosine_similarity(d1_scores, d2_scores)[0][0]

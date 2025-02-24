@@ -23,6 +23,7 @@ dependencies:
   - fastapi
   - pydantic
   - uvicorn
+  - vine
   - pip: 
       - gpytorch
       - botorch
