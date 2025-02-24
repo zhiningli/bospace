@@ -14,6 +14,7 @@ from datetime import datetime
 from src.model import DatasetSimilarityModel, ModelSimilarityModel
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics.pairwise import cosine_similarity
 
 import xgboost as xgb
 import json
@@ -297,3 +298,30 @@ class SimilarityTrainingService:
         correlation, _ = spearmanr(d1_scores, d2_scores)
 
         return correlation
+
+    def _compute_cosine_similarity(self, d1_scores: list | np.ndarray, d2_scores: list | np.ndarray) -> float:
+        """
+        Compute cosine similarity between two sets of scores.
+        Cosine similarity measures the cosine of the angle between two vectors, 
+        ranging from -1 (opposite) to 1 (identical).
+
+        Args:
+            d1_scores (list | np.ndarray): First set of scores.
+            d2_scores (list | np.ndarray): Second set of scores.
+
+        Returns:
+            float: Cosine similarity between the two vectors, ranging from -1 to 1.
+        """
+
+        # Convert inputs to numpy arrays and reshape for compatibility
+        d1_scores = np.array(d1_scores).reshape(1, -1)
+        d2_scores = np.array(d2_scores).reshape(1, -1)
+
+        # Ensure the lengths match
+        if d1_scores.shape[1] != d2_scores.shape[1]:
+            raise ValueError("The two input lists must have the same length.")
+
+        # Compute cosine similarity
+        similarity = cosine_similarity(d1_scores, d2_scores)[0][0]
+
+        return similarity
