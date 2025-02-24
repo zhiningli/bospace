@@ -15,6 +15,8 @@ class HPEvaluationRepository:
         query = """
         INSERT INTO hp_evaluations (model_idx, dataset_idx, results)
         VALUES (%s, %s, %s)
+        ON CONFLICT (dataset_idx, model_idx)
+        DO UPDATE SET results = EXCLUDED.results
         RETURNING hp_evaluation_id, model_idx, dataset_idx, results, created_at;
         """
         try:

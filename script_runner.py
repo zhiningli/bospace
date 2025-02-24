@@ -1,142 +1,39 @@
-import ast
+import json
+from src.database.object import HP_evaluation
+from src.database.crud import HPEvaluationRepository
 
-class CodeExtractor(ast.NodeVisitor):
-    def __init__(self):
-        self.model_class_code = None
+# Path to your exported JSON file
+json_file_path = "new_hp_evaluations.json"
 
-    def visit_ClassDef(self, node):
-        """Extracts the 'Model' class definition."""
-        if node.name == "Model":
-            self.model_class_code = ast.unparse(node)
-        self.generic_visit(node)
+def import_json_to_postgres():
+    """Import JSON data into PostgreSQL."""
+    with open(json_file_path, "r") as file:
+        data = json.load(file)
 
-    def extract_relevant_code(self, code_string):
-        """Extracts the Model class and numpy_dataset definition from code string."""
-        try:
-            tree = ast.parse(code_string)
-            
-            self.visit(tree)
+    for entry in data:
+        dataset_idx = entry["dataset_idx"]
+        model_idx = entry["model_idx"]
+        results = entry["result"]
 
-            model_class_code = self.model_class_code
+        hp_evaluation = HP_evaluation(
+            model_idx= model_idx,
+            dataset_idx= dataset_idx,
+            results = results
+        )
+    # ✅ 2. Use DatasetRepository to insert into DB
+        inserted_result = HPEvaluationRepository.create_hp_evaluation(
+            model_idx = hp_evaluation.model_idx,
+            dataset_idx = hp_evaluation.dataset_idx,
+            results= hp_evaluation.results,
+        )
 
-            return model_class_code
-        except Exception as e:
-            print(f"Failed to parse code: {e}")
-            return None, None
+        if inserted_result:
+            print(f"✅ Successfully inserted hp_result {inserted_result.hp_evaluation_id}")
+        else:
+            break
 
-# Example usage
 
-model = """
-class Model(nn.Module):
-    def __init__(self, input_size, num_classes):
-        super(Model, self).__init__()
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.pool = nn.MaxPool1d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(32 * (input_size // 2), 128)  # Adjust for the reduced dimension after pooling
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, num_classes)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)  # Add regularization with dropout
+    print("✅ JSON data imported into PostgreSQL successfully!")
 
-    def forward(self, x):
-        x = x.unsqueeze(1)
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.conv2(x)
-        x = self.relu(x)
-        x = self.pool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.dropout(x)  # Apply dropout
-        x = self.fc2(x)
-        x = self.relu(x)
-        x = self.fc3(x)
-        return x
-"""
-dataset = """
-# Generate a dataset with 5 classes
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-import numpy as np
-import torch
-from torch.utils.data import TensorDataset, DataLoader
-X, y = make_classification(
-    n_samples=4000,          # Number of samples
-    n_features=25,           # Total number of features
-    n_informative=10,        # Number of informative features
-    n_redundant=2,           # Number of redundant features
-    n_classes=3,             # Number of classes
-    n_clusters_per_class=2,  # Increase clusters per class for complexity
-    class_sep=0.5,           # Reduce class separation for overlap
-    flip_y=0.1,              # Introduce noise in labels
-    random_state=42          # Random state for reproducibility
-)
-
-numpy_dataset = np.column_stack((X, y))
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# **Step 2: Convert to PyTorch tensors**
-X_train = torch.tensor(X_train, dtype=torch.float32)
-y_train = torch.tensor(y_train, dtype=torch.long)
-X_test = torch.tensor(X_test, dtype=torch.float32)
-y_test = torch.tensor(y_test, dtype=torch.long)
-
-# **Step 3: Create PyTorch Datasets**
-train_dataset = TensorDataset(X_train, y_train)
-test_dataset = TensorDataset(X_test, y_test)
-
-# **Step 4: Create DataLoaders**
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False) 
-"""
-
-code_string = """
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-from sklearn.datasets import make_classification
-
-""" + dataset + model + """
-def train_simple_nn(learning_rate, momentum, weight_decay, num_epochs):
-    # Initialize model, loss function, and optimizer
-    model = Model(input_size=25, num_classes=3)  # Adjust input size to match your dataset
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
-
-    # Training loop
-    for epoch in range(num_epochs):
-        model.train()
-        running_loss = 0.0
-        for inputs, labels in train_loader:
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-
-            loss.backward()
-
-            optimizer.step()
-
-            running_loss += loss.item()
-    # Testing the model
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for inputs, labels in test_loader:
-            outputs = model(inputs)
-            _, predicted = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    accuracy = 100 * correct / total
-    return accuracy
-"""
-
-extractor = CodeExtractor()
-model_code= extractor.extract_relevant_code(code_string)
-
-print("Extracted Model Class Code:\n", model_code)
+if __name__ == "__main__":
+    import_json_to_postgres()
