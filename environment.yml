@@ -21,6 +21,7 @@ dependencies:
   - redis
   - celery
   - fastapi
+  - pydantic
   - pip: 
       - gpytorch
       - botorch
