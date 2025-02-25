@@ -38,7 +38,7 @@ def run_bo_task(code_string, search_space, n_initial_points, n_iter, allow_loggi
         raise RuntimeError(f"BO Task failed: {str(e)}")
 
 @celery_app.task(name="src.workers.celery_worker.suggest_search_space_task")
-def suggest_search_space_task(self, code_string: str, top_k: int =5):
+def suggest_search_space_task(code_string: str, top_k: int =5):
     """Background task to suggest search space on model similarities"""
     try:
         logger.info("Statting suggesting search space task")
