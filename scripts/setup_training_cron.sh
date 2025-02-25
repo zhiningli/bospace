@@ -15,7 +15,7 @@ echo "🧹 Cleaning up any existing cron job..."
 (crontab -l | grep -v "$TRAIN_SCRIPT") | crontab -
 
 # Add new cron job
-echo "🕒 Scheduling new daily training cron job at 2 AM..."
-echo "0 2 * * * $PYTHON_EXEC $TRAIN_SCRIPT >> $LOG_FILE 2>&1" | crontab -
+echo "🕒 Scheduling new weekly training cron job at 2 AM every Wednesday..."
+echo "0 2 * * 3 $PYTHON_EXEC $TRAIN_SCRIPT >> $LOG_FILE 2>&1" | crontab -
 
 echo "✅ Cron job successfully set up! Check with: crontab -l"
