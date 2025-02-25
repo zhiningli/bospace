@@ -1,15 +1,20 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 class SuggestSearchSpaceRequest(BaseModel):
-    code_str: str = Field(..., "code string for analysis")
-    top_k: int = Field(5, "number of dataset or model to be considerd as similar")
+    code_str: str
+    top_k: int = 5
+
+
+class Bounds(BaseModel):
+    learning_rate: float
+    weight_decay: float
+    num_epochs: int
+    momentum: float
 
 class BOSearchSpace(BaseModel):
-    learning_rate: tuple[float, float] = Field(..., description="Bounds for learning rate.")
-    momentum: tuple[float, float]=Field(..., description="Bounds for momentum.")
-    weight_decay: tuple[float, float]=Field(..., description="Bounds for weight decay")
-    num_epochs: tuple[float, float]=Field(..., description="Bounds for number of epochs")
-
+    lower_bound: Bounds
+    upper_bound: Bounds
+    
 class BORequest(BaseModel):
     code_str: str
     search_space: BOSearchSpace

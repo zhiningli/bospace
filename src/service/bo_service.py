@@ -10,6 +10,7 @@ from botorch.optim.optimize import optimize_acqf_discrete
 
 import torch
 from tqdm import tqdm
+import bisect
 from itertools import product
 from src.middleware import ComponentStore
 from src.assets import sgd_search_space
@@ -20,40 +21,62 @@ logger = logging.getLogger("service")
 
 class BOService:
 
-    def __init__(self, component_store: ComponentStore):
+    def __init__(self, component_store: ComponentStore= None):
         self.objective_func: Callable = None
         self.search_space: dict[str, list[float]] = None
         self.bounds: torch.Tensor = None
-        self._store: ComponentStore = component_store
+        if not component_store:
+            self._store = ComponentStore()
+        else:
+            self._store: ComponentStore = component_store
+        
+
 
     def load_constrained_search_space(self, search_space: dict[str, dict[str, float]]):
-        """Transform the constrained search space from similarity_inference_service to a search space understandable by BO"""
+        """Transform the constrained search space from similarity_inference_service to a search space understandable by BO."""
 
-        
+        def find_nearest_index(search_list, value, lower):
+            """Find the index of the nearest value using binary search."""
+            if lower:
+                idx = bisect.bisect_left(search_list, value)
+            else:
+                idx = bisect.bisect_right(search_list, value)
+            if idx == 0:
+                return 0
+            if idx == len(search_list):
+                return len(search_list) - 1
+            
+            if abs(search_list[idx] - value) < abs(search_list[idx - 1] - value):
+                return idx
+            else:
+                return idx - 1
+
         lower = search_space["lower_bound"]
         upper = search_space["upper_bound"]
 
-        lower_learning_rate_idx = sgd_search_space["learning_rate"].index(lower["learning_rate"])
-        upper_learning_rate_idx = sgd_search_space["learning_rate"].index(upper["learning_rate"])
+        # Find nearest indices using binary search
+        lower_learning_rate_idx = find_nearest_index(sgd_search_space["learning_rate"], lower["learning_rate"], True)
+        upper_learning_rate_idx = find_nearest_index(sgd_search_space["learning_rate"], upper["learning_rate"], False)
 
-        lower_momentum_idx = sgd_search_space["momentum"].index(lower["momentum"])
-        upper_momentum_idx = sgd_search_space["momentum"].index(upper["momentum"])
+        lower_momentum_idx = find_nearest_index(sgd_search_space["momentum"], lower["momentum"], lower = True)
+        upper_momentum_idx = find_nearest_index(sgd_search_space["momentum"], upper["momentum"], lower = False)
 
-        lower_num_epochs_idx = sgd_search_space["num_epochs"].index(lower["num_epochs"])
-        upper_num_epochs_idx = sgd_search_space["num_epochs"].index(upper["num_epochs"])
+        lower_num_epochs_idx = find_nearest_index(sgd_search_space["num_epochs"], lower["num_epochs"], True)
+        upper_num_epochs_idx = find_nearest_index(sgd_search_space["num_epochs"], upper["num_epochs"], False)
 
-        lower_weight_decay_idx = sgd_search_space["weight_decay"].index(lower["weight_decay"])
-        upper_weight_decay_idx = sgd_search_space["weight_decay"].index(upper["weight_decay"])
+        lower_weight_decay_idx = find_nearest_index(sgd_search_space["weight_decay"], lower["weight_decay"], True)
+        upper_weight_decay_idx = find_nearest_index(sgd_search_space["weight_decay"], upper["weight_decay"], False)
 
-
+        # Construct the constrained search space
         constrained_search_space = {
-            "learning_rate": sgd_search_space["learning_rate"][lower_learning_rate_idx:upper_learning_rate_idx+1],
-            "momentum": sgd_search_space["momentum"][lower_momentum_idx:upper_momentum_idx+1],
-            "num_epochs": sgd_search_space["num_epochs"][lower_num_epochs_idx:upper_num_epochs_idx],
-            "weight_decay": sgd_search_space["weight_decay"][lower_weight_decay_idx:upper_weight_decay_idx]
+            "learning_rate": sgd_search_space["learning_rate"][lower_learning_rate_idx:upper_learning_rate_idx + 1],
+            "momentum": sgd_search_space["momentum"][lower_momentum_idx:upper_momentum_idx + 1],
+            "num_epochs": sgd_search_space["num_epochs"][lower_num_epochs_idx:upper_num_epochs_idx + 1],
+            "weight_decay": sgd_search_space["weight_decay"][lower_weight_decay_idx:upper_weight_decay_idx + 1]
         }
 
         return constrained_search_space
+
 
     def optimise(self,
                 code_str: str,

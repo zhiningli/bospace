@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from src.api.basemodel import SuggestSearchSpaceRequest, BORequest
 from workers.celery_worker import run_bo_task, suggest_search_space_task
 from celery.result import AsyncResult
 

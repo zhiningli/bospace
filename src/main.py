@@ -1,9 +1,12 @@
-import uvicorn
-from src.service import SimilarityTrainingService
+from fastapi import FastAPI
+from src.api import router
 
-if __name__ == "__main__":
+app = FastAPI()
 
-    service = SimilarityTrainingService()
+# Include API routes
+app.include_router(router)
 
-    service.prepare_data_for_rank_training()
-    #  uvicorn.run("api:app", host="0.0.0.0", post=8000, reload=True)
+# Optional: Root endpoint
+@app.get("/")
+async def read_root():
+    return {"message": "API is running!"}
