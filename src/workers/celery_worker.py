@@ -44,7 +44,6 @@ def suggest_search_space_task(code_string: str, top_k: int =5):
         logger.info("Statting suggesting search space task")
         from src.service.similarity_inference_service import SimilarityInferenceService
         service = SimilarityInferenceService()
-
         search_space = service.suggest_search_space(code_str=code_string, num_similar_dataset=top_k, num_similar_model=top_k)
 
         return search_space
