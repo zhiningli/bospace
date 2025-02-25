@@ -39,14 +39,15 @@ class Model_Embedder:
 
         tokens = self.tokeniser(code_string)
 
-        input_ids = tokens["input_ids"]
-        attention_mask = tokens["attention_mask"]
+        input_ids = torch.tensor(tokens["input_ids"]).unsqueeze(0)
+        attention_mask = torch.tensor(tokens["attention_mask"]).unsqueeze(0)
 
         with torch.no_grad():
             outputs = self.model.roberta(input_ids = input_ids, attention_mask = attention_mask, return_dict=True)
             emb = self.model.last_4_layer_avg(outputs)
             emb = self.model.net(emb)
             emb = F.normalize(emb, p=2, dim=-1)
+            emb = emb.squeeze(0).tolist()
             return emb
 
 

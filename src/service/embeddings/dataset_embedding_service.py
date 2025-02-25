@@ -7,29 +7,25 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.impute import SimpleImputer
+from typing import Callable
 
 class Dataset_Embedder:
-    def __init__(self, dataset: np.ndarray = None, labels: np.ndarray = None):
+    def __init__(self):
         """
         Initializes the meta-feature extractor with optional dataset and labels.
-
-        Parameters:
-            dataset (np.ndarray): Feature matrix of shape (n_samples, n_features).
-            labels (np.ndarray): Target labels of shape (n_samples,).
         """
-        self.dataset = dataset
-        self.labels = labels
+        self.dataset = None
+        self.labels = None
 
-    def set_data(self, dataset: np.ndarray, labels: np.ndarray):
+    def set_data(self, dataset_instance: Callable):
         """
         Sets the dataset and labels for the extractor.
 
         Parameters:
-            dataset (np.ndarray): Feature matrix of shape (n_samples, n_features).
-            labels (np.ndarray): Target labels of shape (n_samples,).
+            dataset_instance: Callable
         """
-        self.dataset = dataset
-        self.labels = labels
+        self.dataset = dataset_instance[:, :-1]  # All columns except the last
+        self.labels = dataset_instance[:, -1]
 
     def extract_meta_features(self) -> np.ndarray:
         """

@@ -1,8 +1,14 @@
 from src.middleware import ComponentStore
 from src.service.embeddings import Model_Embedder, Dataset_Embedder
+from src.model import ModelSimilarityModel, DatasetSimilarityModel
 from src.database.crud import ModelRepository, DatasetRepository, ScriptRepository
 from src.utils import extract_model_source_code
 from src.assets.search_space import sgd_search_space
+
+import os
+import joblib
+import numpy as np
+from dotenv import load_dotenv
 
 class SimilarityInferenceService:
 
@@ -11,6 +17,10 @@ class SimilarityInferenceService:
         self.model_embedder = Model_Embedder()
         self.dataset_embedder = Dataset_Embedder()
         self.search_space = sgd_search_space
+        self.model_predictor = ModelSimilarityModel()
+        self.dataset_predictor = DatasetSimilarityModel()
+        
+        self._instantiate_ML_models()
         
     def suggest_search_space(self, code_str: str, num_similar_model: int = 5, num_similar_dataset: int = 5) -> dict[str, dict[str, float]]:
         
@@ -22,7 +32,7 @@ class SimilarityInferenceService:
         dataset_instance = self.store.dataset_instance
 
         top_k_similar_models = self.compute_top_k_model_similarities(model_source_code, k=num_similar_model)
-        top_k_similar_datasets = self.compute_top_k_dataset_similarities(dataset_instance=dataset_instance, k =num_similar_model)
+        top_k_similar_datasets = self.compute_top_k_dataset_similarities(dataset_instance=dataset_instance, k =num_similar_dataset)
 
         result = {
             "lower_bound": {
@@ -68,33 +78,50 @@ class SimilarityInferenceService:
         
         target_model_embedding = self.model_embedder.get_embedding(model_source_code)
 
-        # Can be optimised in futher to only fetch index and embeddings
         models = ModelRepository.get_all_models_with_feature_vector_only()
 
         for model_object in models:
             source_model_idx = model_object.model_idx
             source_model_embedding = model_object.feature_vector
+            if source_model_idx > 30:
+                continue
+            features = np.array(target_model_embedding + source_model_embedding).reshape(1, -1)
+            score = self.model_predictor.predict(features)
+            res.append((source_model_idx, score))
+        
+        res.sort(key= lambda x:x[1], reverse=True)
 
-            # TODO, load the XGBoost model for infering an similarity score
-            break
-
-        pass
+        return [res[i][0] for i in range(k)]
 
     def compute_top_k_dataset_similarities(self, dataset_instance, k):
         res = []
-
-        target_meta_features = self.dataset_embedder.extract_meta_features(dataset_instance)
-
+        self.dataset_embedder.set_data(dataset_instance)
+        target_meta_features = self.dataset_embedder.extract_meta_features()
         datasets = DatasetRepository.get_all_datasets_with_meta_features()
 
         for dataset_object in datasets:
             source_dataset_idx = dataset_object.dataset_idx
+            if source_dataset_idx > 30:
+                continue
             source_dataset_meta_features = dataset_object.meta_features
 
+            features = np.array(target_meta_features + source_dataset_meta_features).reshape(1, -1)
 
-            # TODO, load the RGRegressor model for infering an similarity score
-            break
+            score = self.model_predictor.predict(features).item()
+            
+            res.append((source_dataset_idx, score))
 
-        pass
+        res.sort(key= lambda x:x[1], reverse=True)
 
+        return [res[i][0] for i in range(k)]
 
+    def _instantiate_ML_models(self):
+        load_dotenv()
+        xgboost_model_path = os.getenv("MODEL_RANK_PREDICTION_MODEL_PATH", "./")
+        xgboost_model_model_file = os.path.join(xgboost_model_path, "xgboost_model.json")
+
+        self.model_predictor.load_model(xgboost_model_model_file)
+
+        rfr_model_path = os.getenv("DATASET_RANK_PREDICTION_MODEL_PATH", "./")
+        rfr_model_file = os.path.join(rfr_model_path, "dataset_similarity_model.joblib")
+        self.dataset_predictor = joblib.load(rfr_model_file)

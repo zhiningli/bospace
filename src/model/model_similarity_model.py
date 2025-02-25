@@ -24,7 +24,6 @@ class ModelSimilarityModel:
             "eval_metric": "rmse",
             "max_depth": 6,
             "learning_rate": 0.1,
-            "n_estimators": 100,
             "num_boost_round": 100,
             "seed": self.random_state
         }
@@ -58,6 +57,7 @@ class ModelSimilarityModel:
         # Evaluate model performance
         predictions = self.model.predict(dtest)
         rmse = np.sqrt(np.mean((predictions - y_test) ** 2))
+        print(f"Training completed. RMSE: {rmse:.4f}, y_test std: {np.std(y_test):.4f}")
 
         return rmse
 

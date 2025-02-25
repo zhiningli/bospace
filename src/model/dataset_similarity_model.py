@@ -21,7 +21,7 @@ class DatasetSimilarityModel:
                 random_state=self.random_state
             )
         
-    def train(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
         """Train the Random Forest model."""
         self.model.fit(X_train, y_train)
 

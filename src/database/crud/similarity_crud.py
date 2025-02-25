@@ -104,8 +104,6 @@ class SimilarityRepository:
         """
 
         try:
-            # Validate timestamp format
-            datetime.fromisoformat(created_after)
 
             with get_connection() as conn:
                 with conn.cursor() as cursor:

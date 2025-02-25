@@ -36,7 +36,6 @@ class SimilarityTrainingService:
             datasets = DatasetRepository.get_all_datasets_with_meta_features()
             
             datasets_hpo_performances = EvaluationMaterialisedView.get_evaluations_for_all_dataset()
-            print(len(datasets_hpo_performances))
             logger.debug(f"Retrieved {len(datasets)} datasets and {len(datasets_hpo_performances)} dataset HPO performances.")
 
             performances = defaultdict(list)
@@ -135,7 +134,7 @@ class SimilarityTrainingService:
 
     def training_RFRegressor_for_dataset_rank_prediction(self):
         model_path = os.getenv("DATASET_RANK_PREDICTION_MODEL_PATH", "./")
-        model_file = os.path.join(model_path, "dataset_similarity_model.pkl")
+        model_file = os.path.join(model_path, "dataset_similarity_model.joblib")
         metadata_file = os.path.join(model_path, "dataset_similarity_model_metadata.json")
 
         # Load metadata if available
@@ -170,8 +169,8 @@ class SimilarityTrainingService:
 
         # Prepare features and labels
         for record in new_data:
-            if record.object_1 and record.object_2 and record.similarity is not None:
-                X.append(record.object_1 + record.object_2)  # Concatenate meta-features
+            if record.object_1_feature and record.object_2_feature and record.similarity is not None:
+                X.append(record.object_1_feature + record.object_2_feature)  # Concatenate meta-features
                 y.append(record.similarity)
 
         if not X:
@@ -184,12 +183,15 @@ class SimilarityTrainingService:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         model.fit(X_train, y_train)
+        print((f"Model trained successfully on {len(X_train)} samples."))
         logger.info(f"Model trained successfully on {len(X_train)} samples.")
 
         y_pred = model.predict(X_test)
         mse = mean_squared_error(y_test, y_pred)
         logger.info(f"Model evaluation complete. Mean Squared Error: {mse:.4f}")
+        print(f"Shape of y_test: {y_test.shape}, Shape of y_pred: {y_pred.shape}")
 
+        print(f"Model evaluation complete. Mean Squared Error: {mse:.4f}, std of label is {np.std(y_pred)}")
         os.makedirs(model_path, exist_ok=True)
         joblib.dump(model, model_file)
         logger.info(f"Model saved to {model_file}")
@@ -212,7 +214,7 @@ class SimilarityTrainingService:
     def training_XGBoost_for_model_rank_prediction(self):
         """Train the XGBoost model for model rank prediction."""
         model_path = os.getenv("MODEL_RANK_PREDICTION_MODEL_PATH", "./")
-        model_file = os.path.join(model_path, "model_similarity_model.json")
+        model_file = os.path.join(model_path, "xgboost_model.json")
         metadata_file = os.path.join(model_path, "model_similarity_model_metadata.json")
 
         model = ModelSimilarityModel()
@@ -238,8 +240,8 @@ class SimilarityTrainingService:
         # Prepare training data
         X, y = [], []
         for record in new_data:
-            if record.object_1 and record.object_2 and record.similarity is not None:
-                X.append(record.object_1 + record.object_2)
+            if record.object_1_feature and record.object_2_feature and record.similarity is not None:
+                X.append(record.object_1_feature + record.object_2_feature)
                 y.append(record.similarity)
 
         if not X:
@@ -252,6 +254,8 @@ class SimilarityTrainingService:
         # Train model and evaluate
         try:
             rmse = model.train(X, y, test_size=0.2)
+            
+           
             logger.info(f"Training completed. RMSE: {rmse:.4f}")
         except Exception as e:
             logger.error(f"Model training failed: {e}")
@@ -259,7 +263,7 @@ class SimilarityTrainingService:
 
         # Save model and metadata
         os.makedirs(model_path, exist_ok=True)
-        model.save_model(model_file)
+        model.save_model(model_path)
 
         metadata = {
             "last_trained_at": datetime.now().isoformat(),
