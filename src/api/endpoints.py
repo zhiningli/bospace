@@ -1,22 +1,18 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from workers.celery_worker import run_bo_task
+from workers.celery_worker import run_bo_task, suggest_search_space_task
 from celery.result import AsyncResult
 
 router = APIRouter()
 
-class BOSearchSpace(BaseModel):
-    learning_rate: tuple[float, float] = Field(..., description="Bounds for learning rate.")
-    momentum: tuple[float, float]=Field(..., description="Bounds for momentum.")
-    weight_decay: tuple[float, float]=Field(..., description="Bounds for weight decay")
-    num_epochs: tuple[float, float]=Field(..., description="Bounds for number of epochs")
 
-class BORequest(BaseModel):
-    code_str: str
-    search_space: BOSearchSpace
-    n_initial_points: int = 5
-    n_iter: int = 20
-    allow_logging: bool = True
+@router.post("/suggest-search-space")
+async def start_suggest_search_space(request: SuggestSearchSpaceRequest):
+    task = suggest_search_space_task.apply_async(args=[request.code_str, request.top_k])
+    return {
+        "task_id": task.id,
+        "status": "Task started_successfully"
+    }
 
 @router.post("/boptimise")
 async def start_bayesian_optimisation(request: BORequest):

@@ -31,3 +31,18 @@ def run_bo_task(self, code_string, search_space, n_initial_points, n_iter, allow
     except Exception as e:
         logger.error(f"BO Task failed: {e}")
         raise self.update_state(state="Failure", meta={'error': str(e)})
+    
+@celery_app.task(bind=True)
+def suggest_search_space_task(self, code_string: str, top_k: int =5):
+    """Background task to suggest search space on model similarities"""
+    try:
+        logger.info("Statting suggesting search space task")
+        from src.service.similarity_inference_service import SimilarityInferenceService
+        service = SimilarityInferenceService()
+
+        search_space = service.suggest_search_space(code_str=code_string, num_similar_dataset=top_k, num_similar_model=top_k)
+
+        return search_space
+    except Exception as e:
+        logger.error(f"Suggest search space task fails: {e}", exc_info=True)
+        raise self.update_state(state="Failure", meta= {"error": str(e)})

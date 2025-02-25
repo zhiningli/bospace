@@ -144,15 +144,15 @@ class BOService:
         )
 
 
-        likelihood = GaussianLikelihood(noise_constraint=GreaterThan(1e-6)).to(torch.float64, deice=device)
+        likelihood = GaussianLikelihood(noise_constraint=GreaterThan(1e-6)).to(torch.float64).to(device)
         gp = (SingleTaskGP(
             train_X = normalised_train_x,
             train_Y= train_y,
             likelihood=likelihood,
-        ).to(torch.float64, device = device))
-
+        ).to(torch.float64)).to(device=device)
         print(f"Gaussian Process model is on device: {next(gp.parameters()).device}")
-        mll = ExactMarginalLogLikelihood(likelihood, gp).to(torch.float64, device = device) 
+
+        mll = ExactMarginalLogLikelihood(likelihood, gp).to(torch.float64).to(device=device) 
 
         logger.debug("Fitting gaussian process surrogate to objective function...")
         fit_gpytorch_mll_torch(mll)
