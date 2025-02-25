@@ -12,6 +12,7 @@ import torch
 from tqdm import tqdm
 from itertools import product
 from src.middleware import ComponentStore
+from src.assets import sgd_search_space
 import logging
 from typing import Callable
 
@@ -24,6 +25,35 @@ class BOService:
         self.search_space: dict[str, list[float]] = None
         self.bounds: torch.Tensor = None
         self._store: ComponentStore = component_store
+
+    def load_constrained_search_space(self, search_space: dict[str, dict[str, float]]):
+        """Transform the constrained search space from similarity_inference_service to a search space understandable by BO"""
+
+        
+        lower = search_space["lower_bound"]
+        upper = search_space["upper_bound"]
+
+        lower_learning_rate_idx = sgd_search_space["learning_rate"].index(lower["learning_rate"])
+        upper_learning_rate_idx = sgd_search_space["learning_rate"].index(upper["learning_rate"])
+
+        lower_momentum_idx = sgd_search_space["momentum"].index(lower["momentum"])
+        upper_momentum_idx = sgd_search_space["momentum"].index(upper["momentum"])
+
+        lower_num_epochs_idx = sgd_search_space["num_epochs"].index(lower["num_epochs"])
+        upper_num_epochs_idx = sgd_search_space["num_epochs"].index(upper["num_epochs"])
+
+        lower_weight_decay_idx = sgd_search_space["weight_decay"].index(lower["weight_decay"])
+        upper_weight_decay_idx = sgd_search_space["weight_decay"].index(upper["weight_decay"])
+
+
+        constrained_search_space = {
+            "learning_rate": sgd_search_space["learning_rate"][lower_learning_rate_idx:upper_learning_rate_idx+1],
+            "momentum": sgd_search_space["momentum"][lower_momentum_idx:upper_momentum_idx+1],
+            "num_epochs": sgd_search_space["num_epochs"][lower_num_epochs_idx:upper_num_epochs_idx],
+            "weight_decay": sgd_search_space["weight_decay"][lower_weight_decay_idx:upper_weight_decay_idx]
+        }
+
+        return constrained_search_space
 
     def optimise(self,
                 code_str: str,
@@ -83,7 +113,7 @@ class BOService:
             "num_epochs": self.search_space["num_epochs"][int(np_params[3])]
         }
 
-        return torch.tensor(self._store.objective_func(**params), dtype=torch.float64)
+        return torch.tensor(self._store.objective_func(**params), dtype=torch.float64, device="cuda" if torch.cuda.is_available() else "cpu")
 
     def _run_bayesian_optimisation(self, 
                                     n_iter: int,
@@ -92,13 +122,15 @@ class BOService:
                                    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Commencing bayesian optimsation on device: {device}")
         logger.info(f"Commencing bayesian optimsation on device: {device}")
 
         bounds = self.bounds.to(device)
 
         train_x = draw_sobol_samples(bounds=bounds, n=initial_points, q=sample_per_batch).squeeze(1).to(device, torch.float64)
         train_y = torch.zeros((len(train_x), 1), dtype=torch.float64, device=device)
-
+        print(f"train_x is on device: {train_x.device}")
+        print(f"train_y is on device: {train_y.device}")
         logger.debug("Sampling initial random samples")
         for i, x in enumerate(tqdm(train_x, desc="Initial sampling")):
             train_y[i] = self._botorch_objective(x).item()
@@ -112,13 +144,14 @@ class BOService:
         )
 
 
-        likelihood = GaussianLikelihood(noise_constraint=GreaterThan(1e-6)).to(torch.float64, deice=cuda)
+        likelihood = GaussianLikelihood(noise_constraint=GreaterThan(1e-6)).to(torch.float64, deice=device)
         gp = (SingleTaskGP(
             train_X = normalised_train_x,
             train_Y= train_y,
             likelihood=likelihood,
         ).to(torch.float64, device = device))
 
+        print(f"Gaussian Process model is on device: {next(gp.parameters()).device}")
         mll = ExactMarginalLogLikelihood(likelihood, gp).to(torch.float64, device = device) 
 
         logger.debug("Fitting gaussian process surrogate to objective function...")

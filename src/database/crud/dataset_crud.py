@@ -75,24 +75,24 @@ class DatasetRepository:
         except Exception as e:
             logger.error(f"Failed to retrive dataset with code {e}", exc_info=True)
                 
-    # @staticmethod
-    # def get_all_dataset() -> list[Dataset] | None:
-    #     query = """
-    #     SELECT * FROM datasets
-    #     """
-    #     try:
-    #         with get_connection() as conn:
-    #             with conn.cursor() as cursor:
-    #                 logger.debug("Fetching all datasets from table")
-    #                 cursor.execute(query)
-    #                 rows = cursor.fetchall()
-    #                 if rows:
-    #                     logger.info("Datasets fetched from table")
-    #                     return [Dataset.from_row(row) for row in rows if rows]
-    #                 else:
-    #                     logger.warning("No dataset found in the table")
-    #     except Exception as e:
-    #         logger.error(f"Error when retrieving all datasets {e}", exc_info=True)
+    @staticmethod
+    def get_all_dataset() -> list[Dataset] | None:
+        query = """
+        SELECT * FROM datasets
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    logger.debug("Fetching all datasets from table")
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
+                    if rows:
+                        logger.info("Datasets fetched from table")
+                        return [Dataset.from_row(row) for row in rows if rows]
+                    else:
+                        logger.warning("No dataset found in the table")
+        except Exception as e:
+            logger.error(f"Error when retrieving all datasets {e}", exc_info=True)
 
     @staticmethod
     def get_all_datasets_with_code() -> list[DatasetCode] | None:

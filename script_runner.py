@@ -3,7 +3,7 @@ from src.database.object import HP_evaluation
 from src.database.crud import HPEvaluationRepository
 
 # Path to your exported JSON file
-json_file_path = "new_hp_evaluations.json"
+json_file_path = "new_dataset_hp_evaluations.json"
 
 def import_json_to_postgres():
     """Import JSON data into PostgreSQL."""
