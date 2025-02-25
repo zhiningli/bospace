@@ -67,7 +67,7 @@ class HPEvaluationService:
                 logger.debug(f"Evaluating Model ID {model_idx} with Dataset ID {dataset_idx}")
 
                 if HPEvaluationRepository.exists_hp_evaluation(model_idx=model_idx, dataset_idx=dataset_idx):
-                    logger.warning(f"Evaluation for model {model_idx}, dataset {dataset_idx} already exists. Skipping.")
+                    logger.info(f"Evaluation for model {model_idx}, dataset {dataset_idx} already exists. Skipping.")
                     continue
 
                 try:

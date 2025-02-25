@@ -8,8 +8,10 @@ bo_service = BOService(similarity_service.store)
 dataset_with_codes = DatasetRepository.get_all_dataset()
 dataset_codes_dict = {int(datasetCode.dataset_idx): datasetCode for datasetCode in dataset_with_codes}
 
-for dataset_idx in range(1, 16):
+for dataset_idx in range(6, 16):
     for model_idx in range(1, 16):
+        if dataset_idx == 6 and model_idx < 14:
+            continue
         print(f"Commencing search space suggestion for dataset {dataset_idx}, model {model_idx} script")
         
         dataset_code = dataset_codes_dict[dataset_idx].code

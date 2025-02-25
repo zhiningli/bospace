@@ -1,8 +1,7 @@
-DROP TABLE IF EXISTS 
-    results,
-    scripts,
-    models,
-    datasets,
-    similarity,
-    hp_evaluation
-CASCADE;
+DROP TABLE IF EXISTS dataset_similarities CASCADE;
+DROP TABLE IF EXISTS datasets CASCADE;
+DROP TABLE IF EXISTS models CASCADE;
+DROP TABLE IF EXISTS hp_evaluations CASCADE;
+DROP TABLE IF EXISTS model_similarities CASCADE;
+DROP TABLE IF EXISTS scripts CASCADE;
+DROP TABLE IF EXISTS results CASCADE;
