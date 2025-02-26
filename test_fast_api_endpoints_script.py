@@ -117,6 +117,17 @@ def train_simple_nn(learning_rate, momentum, weight_decay, num_epochs):
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, json=payload)
-        print(response.json())
+        if response.status_code == 200:
+            data = response.json()
+            task_id = data["task_id"]
+            print(f"✅ Task started successfully! Task ID: {task_id}")
+            print("Now listening for updates via WebSocket...")
+            return task_id
+        else:
+            print(f"❌ Error: {response.text}")
+            return None
 
-asyncio.run(main())
+task_id = asyncio.run(main())
+
+# Output task_id so you can use it in JavaScript
+print(f"Use this Task ID for WebSocket: {task_id}")

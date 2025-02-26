@@ -90,7 +90,7 @@ LOGGING_CONFIG = {
 }
 
 # Set logging level based on environment
-environment = os.getenv("ENV", "development")
+environment = os.getenv("ENV", "dev")
 
 if environment == "production":
     LOGGING_CONFIG["handlers"]["console"]["level"] = "WARNING"

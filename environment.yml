@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - pytorch
 dependencies:
-  - python = 3.10
+  - python=3.10
   - numpy
   - pytorch
   - cudatoolkit=11.8
@@ -24,7 +24,8 @@ dependencies:
   - pydantic
   - uvicorn
   - vine
-  - pip: 
+  - pip:
       - gpytorch
       - botorch
       - fastapi
+      - "uvicorn[standard]"
