@@ -1,14 +1,17 @@
 from src.middleware import ComponentStore
 from src.service.embeddings import Model_Embedder, Dataset_Embedder
 from src.model import ModelSimilarityModel, DatasetSimilarityModel
-from src.database.crud import ModelRepository, DatasetRepository, ScriptRepository
+from src.database.crud import ModelRepository, DatasetRepository, ScriptRepository, SimilarityRepository
 from src.utils import extract_model_source_code
 from src.assets.search_space import sgd_search_space
 
 import os
+from datetime import datetime
 import joblib
+import xgboost as xgb
 import numpy as np
 from dotenv import load_dotenv
+from sklearn.metrics import mean_squared_error
 
 class SimilarityInferenceService:
 
@@ -32,8 +35,9 @@ class SimilarityInferenceService:
         dataset_instance = self.store.dataset_instance
 
         top_k_similar_models = self.compute_top_k_model_similarities(model_source_code, k=num_similar_model)
+        print("top_k_models", top_k_similar_models)
         top_k_similar_datasets = self.compute_top_k_dataset_similarities(dataset_instance=dataset_instance, k =num_similar_dataset)
-
+        print("top_k_datasets", top_k_similar_datasets)
         result = {
             "lower_bound": {
                 "learning_rate": float("inf"),
@@ -90,13 +94,12 @@ class SimilarityInferenceService:
             res.append((source_model_idx, score))
         
         res.sort(key= lambda x:x[1], reverse=True)
-
         return [res[i][0] for i in range(k)]
 
     def compute_top_k_dataset_similarities(self, dataset_instance, k):
         res = []
         self.dataset_embedder.set_data(dataset_instance)
-        target_meta_features = self.dataset_embedder.extract_meta_features()
+        target_meta_features = self.dataset_embedder.extract_meta_features().tolist()
         datasets = DatasetRepository.get_all_datasets_with_meta_features()
 
         for dataset_object in datasets:
@@ -104,24 +107,19 @@ class SimilarityInferenceService:
             if source_dataset_idx > 30:
                 continue
             source_dataset_meta_features = dataset_object.meta_features
-
             features = np.array(target_meta_features + source_dataset_meta_features).reshape(1, -1)
 
-            score = self.model_predictor.predict(features).item()
+            score = self.dataset_predictor.predict(features)
             
             res.append((source_dataset_idx, score))
-
+        
         res.sort(key= lambda x:x[1], reverse=True)
-
         return [res[i][0] for i in range(k)]
 
     def _instantiate_ML_models(self):
         load_dotenv()
-        xgboost_model_path = os.getenv("MODEL_RANK_PREDICTION_MODEL_PATH", "./")
-        xgboost_model_model_file = os.path.join(xgboost_model_path, "xgboost_model.json")
+        model_similarity_file = os.path.join(os.getenv("MODEL_RANK_PREDICTION_MODEL_PATH", "./"), "model_similarity.pkl")
+        self.model_predictor.load_model(model_similarity_file)
 
-        self.model_predictor.load_model(xgboost_model_model_file)
-
-        rfr_model_path = os.getenv("DATASET_RANK_PREDICTION_MODEL_PATH", "./")
-        rfr_model_file = os.path.join(rfr_model_path, "dataset_similarity_model.joblib")
-        self.dataset_predictor = joblib.load(rfr_model_file)
+        dataset_similarity_file = os.path.join(os.getenv("DATASET_RANK_PREDICTION_MODEL_PATH", "./"), "dataset_similarity.pkl")
+        self.dataset_predictor.load_model(dataset_similarity_file)

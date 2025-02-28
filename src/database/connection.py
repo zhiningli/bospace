@@ -25,7 +25,7 @@ def get_connection():
 
     if not all([db_name, user, password, host, port]):
         raise ValueError(f"Missing database configuration for environment '{env}'.")
-    logger.debug(f"Connecting to {env} database: {db_name} at {host}:{port} as user '{user}'")
+    # logger.debug(f"Connecting to {env} database: {db_name} at {host}:{port} as user '{user}'")
 
     try:
         connection = psycopg2.connect(
@@ -36,7 +36,7 @@ def get_connection():
             port=port,
             connect_timeout=10
         )
-        logger.info(f"Successfully connected to {env} database: {db_name}.")
+        # logger.info(f"Successfully connected to {env} database: {db_name}.")
         return connection
 
     except psycopg2.OperationalError as e:

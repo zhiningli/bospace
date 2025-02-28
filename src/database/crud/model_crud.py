@@ -82,28 +82,28 @@ class ModelRepository:
         return None
 
 
-    # @staticmethod
-    # def get_all_models() -> list[Model] | None:
-    #     """Retrieve all models from the database."""
-    #     query = """
-    #     SELECT *
-    #     FROM models;
-    #     """
-    #     try:
-    #         with get_connection() as conn:
-    #             with conn.cursor() as cursor:
-    #                 logger.debug("🔍 Fetching all models.")
-    #                 cursor.execute(query)
-    #                 rows = cursor.fetchall()
+    @staticmethod
+    def get_all_models() -> list[Model] | None:
+        """Retrieve all models from the database."""
+        query = """
+        SELECT *
+        FROM models;
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    logger.debug("🔍 Fetching all models.")
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
 
-    #                 if rows:
-    #                     logger.info(f"Retrieved {len(rows)} models successfully.")
-    #                     return [Model.from_row(row) for row in rows]
-    #                 else:
-    #                     logger.warning("No models found in the database.")
-    #     except Exception as e:
-    #         logger.error(f"Failed to retrieve all models: {e}", exc_info=True)
-    #     return []
+                    if rows:
+                        logger.info(f"Retrieved {len(rows)} models successfully.")
+                        return [Model.from_row(row) for row in rows]
+                    else:
+                        logger.warning("No models found in the database.")
+        except Exception as e:
+            logger.error(f"Failed to retrieve all models: {e}", exc_info=True)
+        return []
 
 
     @staticmethod
@@ -154,28 +154,28 @@ class ModelRepository:
             logger.error(f"Failed to retrieve all models: {e}", exc_info=True)
         return []
 
-    # @staticmethod
-    # def update_feature_vector(model_idx: int, feature_vector: list[float]) -> bool:
-    #     """Update the feature vector for a specific model."""
-    #     query = """
-    #     UPDATE models
-    #     SET feature_vector = %s
-    #     WHERE model_idx = %s;
-    #     """
-    #     try:
-    #         with get_connection() as conn:
-    #             with conn.cursor() as cursor:
-    #                 logger.debug(f"Updating feature vector for model_idx={model_idx}")
-    #                 cursor.execute(query, (feature_vector, model_idx))
+    @staticmethod
+    def update_feature_vector(model_idx: int, feature_vector: list[float]) -> bool:
+        """Update the feature vector for a specific model."""
+        query = """
+        UPDATE models
+        SET feature_vector = %s
+        WHERE model_idx = %s;
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # logger.debug(f"Updating feature vector for model_idx={model_idx}")
+                    cursor.execute(query, (feature_vector, model_idx))
 
-    #                 if cursor.rowcount > 0:
-    #                     logger.info(f"Feature vector updated for model_idx={model_idx}")
-    #                     return True
-    #                 else:
-    #                     logger.warning(f"No model found to update: model_idx={model_idx}")
-    #     except Exception as e:
-    #         logger.error(f"Failed to update feature vector for model_idx={model_idx}: {e}", exc_info=True)
-    #     return False
+                    if cursor.rowcount > 0:
+                        # logger.info(f"Feature vector updated for model_idx={model_idx}")
+                        return True
+                    else:
+                        logger.warning(f"No model found to update: model_idx={model_idx}")
+        except Exception as e:
+            logger.error(f"Failed to update feature vector for model_idx={model_idx}: {e}", exc_info=True)
+        return False
 
     # @staticmethod
     # def delete_model(model_idx: int) -> bool:

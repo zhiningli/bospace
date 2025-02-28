@@ -10,12 +10,12 @@ import re
 class Model_Embedder:
     def __init__(self):
         self.model = None
-        self.tokeniser = Tokeniser()
-        load_dotenv()
         self._load_pretrained_encoder()
+        self.tokeniser = Tokeniser()
 
     def _load_pretrained_encoder(self):
         config_path = os.getenv("MODEL_ENCODER_CONFIG_PATH")
+        load_dotenv()
         if not config_path:
             raise ValueError("MODEL_ENCODER_CONFIG_PATH environment variable is not set.")
         config = AutoConfig.from_pretrained(config_path)
@@ -24,6 +24,10 @@ class Model_Embedder:
 
         model_weights = load_file(f"{config_path}/model.safetensors", device="cuda" if torch.cuda.is_available() else "cpu")
         self.model.load_state_dict(model_weights, strict=True)
+
+        self.model.eval()
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
     def get_embedding(self, code_string: str) -> torch.Tensor:
         r""" Interence-only method: Generate normalised embeddings from a single input 
@@ -49,7 +53,6 @@ class Model_Embedder:
             emb = F.normalize(emb, p=2, dim=-1)
             emb = emb.squeeze(0).tolist()
             return emb
-
 
 class Tokeniser:
     def __init__(self, max_length=256):
@@ -99,4 +102,4 @@ class CodePreprocessor:
             if self.should_remove_function(code, fn_name):
                 code = self.delete_function(code, fn_name)
 
-        return re.sub(r"\s+", " ", code).strip()  # Remove excessive whitespace
+        return re.sub(r"\s+", " ", code).strip()  

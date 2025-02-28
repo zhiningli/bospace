@@ -91,12 +91,12 @@ class ScriptRepository:
         try:
             with get_connection() as conn:
                 with conn.cursor() as cursor:
-                    logger.debug(f"Fetching script for model_idx={model_idx} and dataset_idx={dataset_idx}")
+                    # logger.debug(f"Fetching script for model_idx={model_idx} and dataset_idx={dataset_idx}")
                     cursor.execute(query, (model_idx, dataset_idx))
                     row = cursor.fetchone()
 
                     if row:
-                        logger.info(f"✅ Retrieved script for model_idx={model_idx} and dataset_idx={dataset_idx}.")
+                        # logger.info(f"✅ Retrieved script for model_idx={model_idx} and dataset_idx={dataset_idx}.")
                         return Script.from_row(row)
                     else:
                         logger.warning(f"No script found for model_idx={model_idx} and dataset_idx={dataset_idx}.")

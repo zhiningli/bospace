@@ -57,6 +57,25 @@ class ResultRepository:
         return None
 
     @staticmethod
+    def get_all_results() -> list[Result]:
+        query = """
+        SELECT * FROM results;
+        """
+
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
+                    logger.info("Successfully extracted all results from the repository")
+                    return [Result.from_row(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error encountered when trying to fetch all scripts, {e}", exc_info=True)
+        
+        return []
+
+
+    @staticmethod
     def get_results_by_script(script_idx: int) -> list[Result]:
         """Retrieve all results for a specific script."""
         query = """

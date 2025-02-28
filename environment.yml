@@ -24,6 +24,7 @@ dependencies:
   - pydantic
   - uvicorn
   - vine
+  - lightgbm
   - pip:
       - gpytorch
       - botorch

@@ -2,16 +2,14 @@
 from src.service import SimilarityInferenceService, BOService
 from src.database import ScriptRepository, ResultRepository, ModelRepository, DatasetRepository
 from src.assets import code_str
-import numpy as np
 
 similarity_service = SimilarityInferenceService()
 bo_service = BOService(similarity_service.store)
 dataset_with_codes = DatasetRepository.get_all_dataset()
 dataset_codes_dict = {int(datasetCode.dataset_idx): datasetCode for datasetCode in dataset_with_codes}
 
-for dataset_idx in range(1, 16):
-    for model_idx in range(16, 31):
-
+for model_idx in range(1, 16):
+    for dataset_idx in range(1, 15):    
         print(f"Commencing search space suggestion for dataset {dataset_idx}, model {model_idx} script")
         
         dataset_code = dataset_codes_dict[dataset_idx].code
@@ -27,7 +25,7 @@ for dataset_idx in range(1, 16):
         original_sgd_performance = old_script.sgd_best_performing_configuration
 
         search_space = similarity_service.suggest_search_space(code_str = script_code)
-
+        print(search_space)
         constrained_search_space = bo_service.load_constrained_search_space(search_space=search_space)
         print(f"Search space suggested, running bayesian optimsation")
         accuracies, best_y, best_candidate =  bo_service.optimise(code_str=script_code, search_space=constrained_search_space, n_iter=20, initial_points=12)
@@ -45,12 +43,11 @@ for dataset_idx in range(1, 16):
         if float(best_y) >= original_sgd_performance["highest_score"]:
             ScriptRepository.update_script_sgd_config(script_idx=script_idx, sgd_config=best_sgd_configurations)
 
-        ScriptRepository.update_script_code(script_code=script_code, script_idx=script_idx)
         ResultRepository.create_result(
             script_idx=script_idx,
             model_idx=model_idx,
             dataset_idx=dataset_idx,
-            result_type="inferred_constrained",
+            result_type="ktrc_inferred_constrained",
             sgd_config=best_sgd_configurations
         )
         

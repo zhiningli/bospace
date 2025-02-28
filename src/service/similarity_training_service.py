@@ -15,7 +15,7 @@ from src.model import DatasetSimilarityModel, ModelSimilarityModel
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
-
+import itertools
 import json
 
 logger = logging.getLogger("service")
@@ -60,7 +60,7 @@ class SimilarityTrainingService:
                     # Retrieve performances and calculate rank score
                     one_dataset_performance = performances[one_dataset_idx]
                     another_dataset_performance = performances[another_dataset_idx]
-                    rank_score = self._spearman_rank_correlation(one_dataset_performance, another_dataset_performance)
+                    rank_score = self.kendall_tau_rank_correlation(one_dataset_performance, another_dataset_performance)
                     if np.isnan(rank_score):
                         logger.warning("spearman rank 0 detected, indicating a constant performance regardless of hyperparameters, indicating problematic data entry! Discarded")
                         continue
@@ -68,17 +68,13 @@ class SimilarityTrainingService:
                     print(f"Calculated Spearman rank score: {rank_score:.4f} for datasets {one_dataset_idx} and {another_dataset_idx}.") 
                     logger.info(f"Calculated Spearman rank score: {rank_score:.4f} for datasets {one_dataset_idx} and {another_dataset_idx}.")                 
                     # Create similarity entries (bidirectional)
-                    for obj1, obj2, idx1, idx2 in [
-                        (one_dataset_meta_features, another_dataset_meta_features, one_dataset_idx, another_dataset_idx),
-                        (another_dataset_meta_features, one_dataset_meta_features, another_dataset_idx, one_dataset_idx)
-                    ]:
-                        SimilarityRepository.create_similarity(
-                            object_type="dataset",
-                            object_1_idx=idx1, object_1_feature=obj1, 
-                            object_2_idx=idx2, object_2_feature=obj2, 
-                            similarity=rank_score
-                        )
-                        logger.debug(f"Created similarity for datasets: {idx1} <-> {idx2}")
+
+                    SimilarityRepository.create_similarity(
+                        object_type="dataset",
+                        object_1_idx=one_dataset_idx, object_1_feature=one_dataset_meta_features, 
+                        object_2_idx=another_dataset_idx, object_2_feature=another_dataset_meta_features, 
+                        similarity=rank_score
+                    )
                 
             # Prepare rank data by computing the Spearman rank correlation for models
             models = ModelRepository.get_all_models_with_feature_vector_only()
@@ -108,23 +104,19 @@ class SimilarityTrainingService:
                     one_model_performance = performances[one_model_idx]
                     another_model_performance = performances[another_model_idx]
 
-                    rank_score = self._spearman_rank_correlation(one_model_performance, another_model_performance)
+                    rank_score = self.kendall_tau_rank_correlation(one_model_performance, another_model_performance)
+
                     if rank_score == float("nan"):
                         logger.warning("spearman rank 0 detected, indicating a constant performance regardless of hyperparameters, indicating problematic data entry! Discarded")
                         continue
-                    logger.info(f"Calculated Spearman rank score: {rank_score:.4f} for models {one_model_idx} and {another_model_idx}.")
-                    # Create similarity entries (bidirectional)
-                    for obj1, obj2, idx1, idx2 in [
-                        (one_model_feature_vector, another_model_feature_vector, one_model_idx, another_model_idx),
-                        (another_model_feature_vector, one_model_feature_vector, another_model_idx, one_model_idx)
-                    ]:
-                        SimilarityRepository.create_similarity(
-                            object_type="model",
-                            object_1_idx=idx1, object_1_feature=obj1, 
-                            object_2_idx=idx2, object_2_feature=obj2, 
-                            similarity=rank_score
-                        )
-                        logger.debug(f"Created similarity for models: {idx1} <-> {idx2}")
+                    logger.info(f"Calculated ktrc rank score: {rank_score:.4f} for models {one_model_idx} and {another_model_idx}.")
+
+                    SimilarityRepository.create_similarity(
+                        object_type="model",
+                        object_1_idx=one_model_idx, object_1_feature=one_model_feature_vector, 
+                        object_2_idx=another_model_idx, object_2_feature=another_model_feature_vector, 
+                        similarity=rank_score
+                    )
 
             logger.info("Rank data preparation completed successfully!")
 
@@ -132,34 +124,19 @@ class SimilarityTrainingService:
             logger.error(f"Failed to prepare rank data due to an error: {e}", exc_info=True)
 
 
-    def training_RFRegressor_for_dataset_rank_prediction(self):
-        model_path = os.getenv("DATASET_RANK_PREDICTION_MODEL_PATH", "./")
-        model_file = os.path.join(model_path, "dataset_similarity_model.joblib")
-        metadata_file = os.path.join(model_path, "dataset_similarity_model_metadata.json")
+    def training_for_dataset_similarity(self):
+        model_path = os.path.join(os.getenv("DATASET_RANK_PREDICTION_MODEL_PATH", "./"), "dataset_similarity.pkl")
 
-        # Load metadata if available
-        if os.path.exists(metadata_file):
-            try:
-                with open(metadata_file, "r") as meta_file:
-                    metadata = json.load(meta_file)
-                    last_trained_at = datetime.fromisoformat(metadata.get("last_trained_at", datetime.min.isoformat()))
-                logger.info(f"Metadata loaded. Last trained at: {last_trained_at}")
-            except (json.JSONDecodeError, KeyError, ValueError):
-                logger.warning(" Failed to parse metadata. Using defaults.")
-                last_trained_at = datetime.min
-        else:
-            last_trained_at = datetime.min
+        model = DatasetSimilarityModel()
 
-        # Load existing model or create a new one
-        if os.path.exists(model_file):
-            model = joblib.load(model_file)
-            logger.info("Loaded existing RandomForest model.")
+        # Load existing model if it exists
+        if os.path.exists(model_path):
+            model.load_model(model_path)
         else:
-            model = DatasetSimilarityModel()
-            logger.warning("No existing model found. Created a new RandomForest model.")
+            logger.info("No existing model found. Training a new one.")
 
         # Fetch new data created after the last trained timestamp
-        new_data = SimilarityRepository.get_results_after_time(object_type="dataset", created_after=last_trained_at)
+        new_data = SimilarityRepository.get_results_after_time(object_type="dataset", created_after=datetime.min)
 
         if not new_data:
             logger.info(" No new dataset similarities found for training. Skipping training.")
@@ -180,61 +157,34 @@ class SimilarityTrainingService:
         X = np.array(X)
         y = np.array(y)
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Train model and evaluate
+        try:
+            score = model.train(X, y, test_size=0.2)  
+            logger.info(f"Training completed. Model Score (R²): {score:.4f}")
+        except Exception as e:
+            logger.error(f"Model training failed: {e}")
+            return
 
-        model.fit(X_train, y_train)
-        print((f"Model trained successfully on {len(X_train)} samples."))
-        logger.info(f"Model trained successfully on {len(X_train)} samples.")
+        # Save model and metadata
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)  #
+        model.save_model(model_path)
 
-        y_pred = model.predict(X_test)
-        mse = mean_squared_error(y_test, y_pred)
-        logger.info(f"Model evaluation complete. Mean Squared Error: {mse:.4f}")
-        print(f"Shape of y_test: {y_test.shape}, Shape of y_pred: {y_pred.shape}")
-
-        print(f"Model evaluation complete. Mean Squared Error: {mse:.4f}, std of label is {np.std(y_pred)}")
-        os.makedirs(model_path, exist_ok=True)
-        joblib.dump(model, model_file)
-        logger.info(f"Model saved to {model_file}")
-
-        # Update metadata with current training details
-        metadata = {
-            "last_trained_at": datetime.now().isoformat(),
-            "model_type": "RandomForestRegressor",
-            "hyperparameters": model.get_params(),
-            "performance": {"mse": mse}
-        }
-
-        # Write metadata file
-        with open(metadata_file, "w") as meta_file:
-            json.dump(metadata, meta_file, indent=4)
-        logger.info(f"Metadata updated and saved to {metadata_file}.")
-
-
-
-    def training_XGBoost_for_model_rank_prediction(self):
-        """Train the XGBoost model for model rank prediction."""
-        model_path = os.getenv("MODEL_RANK_PREDICTION_MODEL_PATH", "./")
-        model_file = os.path.join(model_path, "xgboost_model.json")
-        metadata_file = os.path.join(model_path, "model_similarity_model_metadata.json")
-
-        model = ModelSimilarityModel()
-        last_trained_at = datetime.min
-
-        if os.path.exists(model_file) and os.path.exists(metadata_file):
-            try:
-                model.load_model(model_file)
-                with open(metadata_file, "r") as meta_file:
-                    metadata = json.load(meta_file)
-                    last_trained_at = datetime.fromisoformat(metadata.get("last_trained_at", str(datetime.min)))
-                    logger.info(f"Loaded existing model trained at: {last_trained_at}.")
-            except (json.JSONDecodeError, FileNotFoundError, KeyError):
-                logger.warning("Failed to load existing model or metadata. Training from scratch.")
+    def training_for_model_similarity(self):
+        """Train the Random Forest model for model rank prediction."""
         
+        model_path = os.path.join(os.getenv("MODEL_RANK_PREDICTION_MODEL_PATH", "./"), "model_similarity.pkl")
+        model = ModelSimilarityModel()
+        # Load existing model if it exists
+        if os.path.exists(model_path):
+            model.load_model(model_path)
+        else:
+            logger.info("No existing model found. Training a new one.")
+
         # Fetch new data since the last training
-        new_data = SimilarityRepository.get_results_after_time(object_type="model", created_after=last_trained_at)
+        new_data = SimilarityRepository.get_results_after_time(object_type="model", created_after=datetime.min)
 
         if not new_data:
-            logger.info("No new dataset similarity found for training XGBoost. Skipping training.")
+            logger.info("No new dataset similarity found for training. Skipping training.")
             return
 
         # Prepare training data
@@ -253,32 +203,37 @@ class SimilarityTrainingService:
 
         # Train model and evaluate
         try:
-            rmse = model.train(X, y, test_size=0.2)
-            
-           
-            logger.info(f"Training completed. RMSE: {rmse:.4f}")
+            score = model.train(X, y, test_size=0.2)  
+            logger.info(f"Training completed. Model Score (R²): {score:.4f}")
         except Exception as e:
             logger.error(f"Model training failed: {e}")
             return
 
         # Save model and metadata
-        os.makedirs(model_path, exist_ok=True)
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)  #
         model.save_model(model_path)
 
-        metadata = {
-            "last_trained_at": datetime.now().isoformat(),
-            "model_type": "XGBoost",
-            "hyperparameters": model.get_params()
-        }
 
-        try:
-            with open(metadata_file, "w") as meta_file:
-                json.dump(metadata, meta_file, indent=4)
-            logger.info(f"Model and metadata saved successfully. Last trained at: {metadata['last_trained_at']}.")
-        except Exception as e:
-            logger.error(f"Failed to save metadata: {e}")
+    def kendall_tau_rank_correlation(self, d1_scores, d2_scores):
 
+        num_configs = len(d1_scores)
+        d1_scores = np.array(d1_scores)
+        d2_scores = np.array(d2_scores)
+        total_pairs = num_configs * (num_configs - 1) // 2
+        concordant_discordant_count = 0
+        for (i, j) in itertools.combinations(range(num_configs), 2):
+            d1_relation = np.sign(d1_scores[i] - d1_scores[j])
+            d2_relation = np.sign(d2_scores[i] - d2_scores[j])
 
+            if d1_relation == d2_relation:
+                concordant_discordant_count += 1
+            else:
+                concordant_discordant_count -= 1
+
+        ktrc = concordant_discordant_count / total_pairs
+
+        return ktrc
+        
     def _spearman_rank_correlation(self, d1_scores: list | np.ndarray, d2_scores: list | np.ndarray) -> float:
         """
         Compute Spearman's rank correlation coefficient between two sets of scores.
