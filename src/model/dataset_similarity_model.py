@@ -17,19 +17,16 @@ class DatasetSimilarityModel:
         self.random_state = random_state
 
         # Default hyperparameters optimized for similarity ranking
-        default_params = {
-            'max_depth': None, 
-            'max_features': 'sqrt', 
-            'min_samples_leaf': 1, 
-            'min_samples_split': 2, 
-            'n_estimators': 200  
-        }
+        default_params = {'max_depth': None, 'max_features': 'sqrt', 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 200}
         
         self.hyperparameters = {**default_params, **(hyperparameters or {})}
         
         self.model = RandomForestRegressor(
             n_estimators=self.hyperparameters["n_estimators"],
             max_depth=self.hyperparameters["max_depth"],
+            max_features= self.hyperparameters["max_features"],
+            min_samples_leaf= self.hyperparameters["min_samples_leaf"],
+            min_samples_split= self.hyperparameters["min_samples_split"],
             random_state=self.random_state
         )
 

@@ -116,3 +116,24 @@ for script_idx in dict_to_evaluate.keys():
     
 print(f"For simple inferred_constrained result, {higher_count} out of 210 scripts experience an increase in performance, average improvement in accuracy is {higher_mag / higher_count:.2f}%")
 print(f"For simple inferred_constrained result, {lower_count} out of 210 scripts experience an decrease in performance, average decrease in accuracy is {lower_mag / lower_count:.2f}%")
+
+
+# Analysis for cosntrained
+higher_count = 0
+lower_count = 0
+higher_mag = 0
+lower_mag = 0
+for script_idx in dict_to_evaluate.keys():
+    unconstrained_result = dict_to_evaluate[script_idx]["unconstrained"]
+    target_result = dict_to_evaluate[script_idx]["ktrc_inferred_constrained"]
+
+    if unconstrained_result < target_result:
+        higher_count += 1
+        higher_mag += target_result - unconstrained_result
+
+    elif unconstrained_result > target_result:
+        lower_count += 1
+        lower_mag += unconstrained_result - target_result
+    
+print(f"For ktrc inferred_constrained result, {higher_count} out of 210 scripts experience an increase in performance, average improvement in accuracy is {higher_mag / higher_count:.2f}%")
+print(f"For ktrc inferred_constrained result, {lower_count} out of 210 scripts experience an decrease in performance, average decrease in accuracy is {lower_mag / lower_count:.2f}%")
