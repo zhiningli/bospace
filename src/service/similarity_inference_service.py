@@ -87,7 +87,7 @@ class SimilarityInferenceService:
         for model_object in models:
             source_model_idx = model_object.model_idx
             source_model_embedding = model_object.feature_vector
-            if source_model_idx > 30 or source_model_idx == target_model_idx:
+            if source_model_idx > 30:
                 continue
             features = np.array(target_model_embedding + source_model_embedding).reshape(1, -1)
             score = self.model_predictor.predict(features)
@@ -104,7 +104,7 @@ class SimilarityInferenceService:
 
         for dataset_object in datasets:
             source_dataset_idx = dataset_object.dataset_idx
-            if source_dataset_idx > 30 or source_dataset_idx == target_dataset_idx:
+            if source_dataset_idx > 30:
                 continue
             source_dataset_meta_features = dataset_object.meta_features
             features = np.array(target_meta_features + source_dataset_meta_features).reshape(1, -1)

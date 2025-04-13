@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -62,8 +63,9 @@ class ModelSimilarityModel:
 
         # Compute evaluation score (optional)
         score = self.model.score(X_test_pca, y_test)
-
-        return score
+        y_pred = self.model.predict(X_test_pca)
+        mse = mean_squared_error(y_test, y_pred)
+        return mse
 
     def predict(self, X: np.ndarray) -> float:
         """Predict the similarity score for a given feature vector."""

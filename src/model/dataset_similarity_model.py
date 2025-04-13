@@ -3,6 +3,7 @@ import logging
 import joblib
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -47,8 +48,9 @@ class DatasetSimilarityModel:
 
         # Compute evaluation score (optional)
         score = self.model.score(X_test, y_test)
-
-        return score
+        y_pred = self.model.predict(X_test)
+        mse = mean_squared_error(y_test, y_pred)
+        return mse
 
     def predict(self, X: np.ndarray) -> float:
         """Predict the similarity score for a given feature vector."""
